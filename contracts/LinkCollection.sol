@@ -9,4 +9,11 @@ contract LinkCollection {
 
     /// Mapping for converting wallet address to email
     mapping(address => bytes32) private toHash;
+
+    mapping(address => uint256) public nonce;
+
+    function add() public {
+
+        nonce[msg.sender]++;
+    }
 }
