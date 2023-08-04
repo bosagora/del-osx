@@ -3,13 +3,17 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 // E000 : invalid signature
 // E001 : invalid email hash
 // E002 : invalid address
 
 /// Contract for converting e-mail to wallet
-contract LinkCollection {
+contract LinkCollection is AccessControl {
+    bytes32 public constant LINK_COLLECTION_ADMIN_ROLE = keccak256("LINK_COLLECTION_ADMIN_ROLE");
+    bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE");
+
     /// Mapping for converting email to wallet address
     mapping(bytes32 => address) public toAddress;
 
@@ -21,8 +25,34 @@ contract LinkCollection {
     event Added(bytes32 hash, address sender);
     event Updated(bytes32 hash, address sender1, address sender2);
 
+    constructor(address[] memory validators) {
+        _setRoleAdmin(LINK_COLLECTION_ADMIN_ROLE, LINK_COLLECTION_ADMIN_ROLE);
+        _setRoleAdmin(VALIDATOR_ROLE, LINK_COLLECTION_ADMIN_ROLE);
+
+        // self administration
+        _setupRole(LINK_COLLECTION_ADMIN_ROLE, address(this));
+
+        // register validators
+        for (uint256 i = 0; i < validators.length; ++i) {
+            _setupRole(VALIDATOR_ROLE, validators[i]);
+        }
+    }
+
+    /**
+     * @dev Modifier to make a function callable only by a certain role. In
+     * addition to checking the sender's role, `address(0)` 's role is also
+     * considered. Granting a role to `address(0)` is equivalent to enabling
+     * this role for everyone.
+     */
+    modifier onlyRoleOrOpenRole(bytes32 role) {
+        if (!hasRole(role, address(0))) {
+            _checkRole(role, _msgSender());
+        }
+        _;
+    }
+
     /// Add an item
-    function add(bytes32 hash, address sender, bytes calldata signature) public {
+    function add(bytes32 hash, address sender, bytes calldata signature) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
         bytes32 dataHash = keccak256(abi.encode(hash, sender, nonce[sender]));
         require(ECDSA.recover(dataHash, signature) == sender, "E000");
 
@@ -38,7 +68,13 @@ contract LinkCollection {
     }
 
     /// Update an item
-    function update(bytes32 hash, address sender1, bytes calldata signature1, address sender2, bytes calldata signature2) public {
+    function update(
+        bytes32 hash,
+        address sender1,
+        bytes calldata signature1,
+        address sender2,
+        bytes calldata signature2
+    ) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
         bytes32 dataHash1 = keccak256(abi.encode(hash, sender1, nonce[sender1]));
         require(ECDSA.recover(dataHash1, signature1) == sender1, "E000");
 

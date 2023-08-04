@@ -5,11 +5,7 @@ import { BigNumberish, Wallet } from "ethers";
 // @ts-ignore
 import * as hre from "hardhat";
 
-export function sign(
-    signer: Wallet,
-    hash: string,
-    nonce: BigNumberish
-): Promise<string> {
+export function sign(signer: Wallet, hash: string, nonce: BigNumberish): Promise<string> {
     const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "address", "uint256"],
         [hash, signer.address, nonce]
