@@ -2,9 +2,9 @@
     "name": "link-email-wallet",
     "version": "1.0.0",
     "description": "A service that links e-mail and wallet addresses",
-    "directories": {
-        "test": "test"
-    },
+    "files": [
+        "**/*.sol"
+    ],
     "scripts": {
         "test": "node_modules/.bin/hardhat test",
         "clean": "node_modules/.bin/hardhat clean",
