@@ -1,0 +1,11 @@
+{
+  "mainnet": {
+    "LinkCollection": "0x4Ca91738C7cD24895467c6d550D96BE8dC4b33AA"
+  },
+  "testnet": {
+    "LinkCollection": "0x4Ca91738C7cD24895467c6d550D96BE8dC4b33AA"
+  },
+  "localhost": {
+    "LinkCollection": "0x4Ca91738C7cD24895467c6d550D96BE8dC4b33AA"
+  }
+}
