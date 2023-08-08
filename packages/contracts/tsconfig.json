@@ -1,15 +1,13 @@
 {
     "compilerOptions": {
-        "sourceMap": true,
-        "target": "es2020",
+        "target": "es2018",
         "module": "commonjs",
-        "lib": ["esnext"],
         "strict": true,
         "esModuleInterop": true,
         "outDir": "dist",
         "declaration": true,
+        "moduleResolution": "node",
         "resolveJsonModule": true
     },
-    "include": ["./scripts", "./test", "./typechain-types"],
-    "files": ["./hardhat.config.ts"]
+    "include": ["./hardhat.config.ts", "./test", "./typechain-types", "./deploy"]
 }

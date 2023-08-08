@@ -1,6 +1,5 @@
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
-import "@nomiclabs/hardhat-web3";
 import "@typechain/hardhat";
 import * as dotenv from "dotenv";
 import { utils, Wallet } from "ethers";
@@ -39,6 +38,45 @@ function getAccounts() {
         accounts.push(process.env.OWNER);
     }
 
+    if (
+        process.env.VALIDATOR1 !== undefined &&
+        process.env.VALIDATOR1.trim() !== "" &&
+        reg_bytes64.test(process.env.VALIDATOR1)
+    ) {
+        accounts.push(process.env.VALIDATOR1);
+    }
+
+    if (
+        process.env.VALIDATOR2 !== undefined &&
+        process.env.VALIDATOR2.trim() !== "" &&
+        reg_bytes64.test(process.env.VALIDATOR2)
+    ) {
+        accounts.push(process.env.VALIDATOR2);
+    }
+
+    if (
+        process.env.VALIDATOR3 !== undefined &&
+        process.env.VALIDATOR3.trim() !== "" &&
+        reg_bytes64.test(process.env.VALIDATOR3)
+    ) {
+        accounts.push(process.env.VALIDATOR3);
+    }
+
+    if (
+        process.env.VALIDATOR4 !== undefined &&
+        process.env.VALIDATOR4.trim() !== "" &&
+        reg_bytes64.test(process.env.VALIDATOR4)
+    ) {
+        accounts.push(process.env.VALIDATOR4);
+    }
+
+    if (
+        process.env.VALIDATOR5 !== undefined &&
+        process.env.VALIDATOR5.trim() !== "" &&
+        reg_bytes64.test(process.env.VALIDATOR5)
+    ) {
+        accounts.push(process.env.VALIDATOR5);
+    }
     return accounts;
 }
 
@@ -63,7 +101,7 @@ function getTestAccounts() {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const config: HardhatUserConfig = {
+const config = {
     solidity: {
         compilers: [
             {
@@ -79,9 +117,6 @@ const config: HardhatUserConfig = {
                         },
                     },
                 },
-            },
-            {
-                version: "0.8.16",
             },
         ],
     },
@@ -108,7 +143,7 @@ const config: HardhatUserConfig = {
         },
         localhost: {
             url: "http://localhost:8545",
-            chainId: 1337,
+            chainId: 24680,
             accounts: getAccounts(),
             deploy: ["./deploy"],
         },
@@ -120,10 +155,32 @@ const config: HardhatUserConfig = {
         owner: {
             default: 1,
         },
+        validator1: {
+            default: 2,
+        },
+        validator2: {
+            default: 3,
+        },
+        validator3: {
+            default: 4,
+        },
+        validator4: {
+            default: 5,
+        },
+        validator5: {
+            default: 6,
+        },
     },
     gasReporter: {
         enabled: process.env.REPORT_GAS !== undefined,
         currency: "USD",
+    },
+    paths: {
+        sources: "./contracts",
+        tests: "./test",
+        cache: "./cache",
+        artifacts: "./artifacts",
+        deploy: "./deploy",
     },
 };
 
