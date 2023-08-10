@@ -1,6 +1,6 @@
 {
     "name": "link-email-wallet-osx-artifacts",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Contracts that links e-mail and wallet addresses",
     "files": [
         "**/*.sol"

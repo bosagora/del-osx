@@ -54,7 +54,7 @@ contract LinkCollection is AccessControl {
     /// Add an item
     function add(bytes32 hash, address sender, bytes calldata signature) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
         bytes32 dataHash = keccak256(abi.encode(hash, sender, nonce[sender]));
-        require(ECDSA.recover(dataHash, signature) == sender, "E000");
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), signature) == sender, "E000");
 
         require(toAddress[hash] == address(0x00), "E001");
         require(toHash[sender] == bytes32(0x00), "E002");
@@ -76,10 +76,10 @@ contract LinkCollection is AccessControl {
         bytes calldata signature2
     ) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
         bytes32 dataHash1 = keccak256(abi.encode(hash, sender1, nonce[sender1]));
-        require(ECDSA.recover(dataHash1, signature1) == sender1, "E000");
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), signature1) == sender1, "E000");
 
         bytes32 dataHash2 = keccak256(abi.encode(hash, sender2, nonce[sender2]));
-        require(ECDSA.recover(dataHash2, signature2) == sender2, "E000");
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), signature2) == sender2, "E000");
 
         require(toAddress[hash] == sender1, "E001");
         require(toHash[sender1] == hash, "E002");
