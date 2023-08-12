@@ -15,7 +15,7 @@ chai.use(solidity);
 
 describe("Test for LinkCollection", () => {
     const provider = hre.waffle.provider;
-    const [admin, owner, user1, user2, validator1, validator2, validator3] = provider.getWallets();
+    const [admin, owner, user1, user2, user3, validator1, validator2, validator3] = provider.getWallets();
 
     const validators = [validator1, validator2, validator3];
     let contract: LinkCollection;
@@ -71,5 +71,14 @@ describe("Test for LinkCollection", () => {
             .withArgs(hash, user1.address, user2.address);
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
         assert.deepStrictEqual(await contract.toHash(user2.address), hash);
+    });
+
+    it("Check Null", async () => {
+        const email = "";
+        const hash = ContractUtils.sha256String(email);
+        expect(hash).to.equal("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        const nonce = await contract.nonce(user3.address);
+        const signature = await ContractUtils.sign(user3, hash, nonce);
+        await expect(contract.connect(validators[1]).add(hash, user3.address, signature)).to.be.revertedWith("E001");
     });
 });
