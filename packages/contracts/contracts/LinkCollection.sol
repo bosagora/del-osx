@@ -76,7 +76,7 @@ contract LinkCollection is AccessControl {
         bytes calldata signature1,
         address sender2,
         bytes calldata signature2
-    ) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
+    ) public {
         require(hash != NULL, "E001");
         bytes32 dataHash1 = keccak256(abi.encode(hash, sender1, nonce[sender1]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), signature1) == sender1, "E000");
