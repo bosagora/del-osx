@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract LinkCollection is AccessControl {
     bytes32 public constant LINK_COLLECTION_ADMIN_ROLE = keccak256("LINK_COLLECTION_ADMIN_ROLE");
     bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE");
+    bytes32 public constant NULL = 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
 
     /// Mapping for converting email to wallet address
     mapping(bytes32 => address) public toAddress;
@@ -53,6 +54,7 @@ contract LinkCollection is AccessControl {
 
     /// Add an item
     function add(bytes32 hash, address sender, bytes calldata signature) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
+        require(hash != NULL, "E001");
         bytes32 dataHash = keccak256(abi.encode(hash, sender, nonce[sender]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), signature) == sender, "E000");
 
@@ -75,6 +77,7 @@ contract LinkCollection is AccessControl {
         address sender2,
         bytes calldata signature2
     ) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
+        require(hash != NULL, "E001");
         bytes32 dataHash1 = keccak256(abi.encode(hash, sender1, nonce[sender1]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), signature1) == sender1, "E000");
 
