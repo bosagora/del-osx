@@ -23,8 +23,8 @@ contract LinkCollection is AccessControl {
 
     mapping(address => uint256) public nonce;
 
-    event Added(bytes32 hash, address sender);
-    event Updated(bytes32 hash, address sender1, address sender2);
+    event AddedLinkItem(bytes32 hash, address sender);
+    event UpdatedLinkItem(bytes32 hash, address sender1, address sender2);
 
     constructor(address[] memory validators) {
         _setRoleAdmin(LINK_COLLECTION_ADMIN_ROLE, LINK_COLLECTION_ADMIN_ROLE);
@@ -66,7 +66,7 @@ contract LinkCollection is AccessControl {
 
         nonce[sender]++;
 
-        emit Added(hash, sender);
+        emit AddedLinkItem(hash, sender);
     }
 
     /// Update an item
@@ -97,6 +97,6 @@ contract LinkCollection is AccessControl {
         nonce[sender1]++;
         nonce[sender2]++;
 
-        emit Updated(hash, sender1, sender2);
+        emit UpdatedLinkItem(hash, sender1, sender2);
     }
 }

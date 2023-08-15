@@ -34,7 +34,7 @@ describe("Test for LinkCollection", () => {
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
         await expect(contract.connect(validators[0]).add(hash, user1.address, signature))
-            .to.emit(contract, "Added")
+            .to.emit(contract, "AddedLinkItem")
             .withArgs(hash, user1.address);
         assert.deepStrictEqual((await contract.nonce(user1.address)).toString(), "1");
         assert.deepStrictEqual(await contract.toAddress(hash), user1.address);
@@ -67,7 +67,7 @@ describe("Test for LinkCollection", () => {
         const signature2 = await ContractUtils.sign(user2, hash, nonce2);
 
         await expect(contract.connect(validators[2]).update(hash, user1.address, signature1, user2.address, signature2))
-            .to.emit(contract, "Updated")
+            .to.emit(contract, "UpdatedLinkItem")
             .withArgs(hash, user1.address, user2.address);
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
         assert.deepStrictEqual(await contract.toHash(user2.address), hash);

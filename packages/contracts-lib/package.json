@@ -1,6 +1,6 @@
 {
   "name": "link-email-wallet-osx-lib",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "",
   "main": "dist/bundle-cjs.js",
   "module": "dist/bundle-esm.js",
