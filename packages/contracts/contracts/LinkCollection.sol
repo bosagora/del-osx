@@ -56,11 +56,11 @@ contract LinkCollection is AccessControl {
     uint256 private latestId;
 
     event AddedRequestItem(uint256 id, bytes32 email, address wallet);
-    event AcceptedRequestItem(uint256 id, bytes32 hash, address sender);
-    event RejectedRequestItem(uint256 id, bytes32 hash, address sender);
-    event UpdatedLinkItem(bytes32 hash, address sender1, address sender2);
+    event AcceptedRequestItem(uint256 id, bytes32 email, address wallet);
+    event RejectedRequestItem(uint256 id, bytes32 email, address wallet);
+    event UpdatedLinkItem(bytes32 email, address wallet1, address _wallet2);
 
-    constructor(address[] memory validators) {
+    constructor(address[] memory _validators) {
         _setRoleAdmin(LINK_COLLECTION_ADMIN_ROLE, LINK_COLLECTION_ADMIN_ROLE);
         _setRoleAdmin(VALIDATOR_ROLE, LINK_COLLECTION_ADMIN_ROLE);
 
@@ -68,11 +68,11 @@ contract LinkCollection is AccessControl {
         _setupRole(LINK_COLLECTION_ADMIN_ROLE, address(this));
 
         // register validators
-        for (uint256 i = 0; i < validators.length; ++i) {
-            _setupRole(VALIDATOR_ROLE, validators[i]);
+        for (uint256 i = 0; i < _validators.length; ++i) {
+            _setupRole(VALIDATOR_ROLE, _validators[i]);
         }
 
-        validatorLength = validators.length;
+        validatorLength = _validators.length;
         quorum = uint256(2000) / uint256(3);
         latestId = 0;
     }
@@ -92,33 +92,33 @@ contract LinkCollection is AccessControl {
 
     /// Update an item
     function update(
-        bytes32 hash,
-        address sender1,
-        bytes calldata signature1,
-        address sender2,
-        bytes calldata signature2
+        bytes32 _email,
+        address _wallet1,
+        bytes calldata _signature1,
+        address _wallet2,
+        bytes calldata _signature2
     ) public {
-        require(hash != NULL, "E001");
-        bytes32 dataHash1 = keccak256(abi.encode(hash, sender1, nonce[sender1]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), signature1) == sender1, "E000");
+        require(_email != NULL, "E001");
+        bytes32 dataHash1 = keccak256(abi.encode(_email, _wallet1, nonce[_wallet1]));
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), _signature1) == _wallet1, "E000");
 
-        bytes32 dataHash2 = keccak256(abi.encode(hash, sender2, nonce[sender2]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), signature2) == sender2, "E000");
+        bytes32 dataHash2 = keccak256(abi.encode(_email, _wallet2, nonce[_wallet2]));
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "E000");
 
-        require(toAddress[hash] == sender1, "E001");
-        require(toHash[sender1] == hash, "E002");
-        require(toHash[sender2] == bytes32(0x00), "E002");
-        require(sender1 != sender2, "E002");
+        require(toAddress[_email] == _wallet1, "E001");
+        require(toHash[_wallet1] == _email, "E002");
+        require(toHash[_wallet2] == bytes32(0x00), "E002");
+        require(_wallet1 != _wallet2, "E002");
 
-        delete toHash[sender1];
+        delete toHash[_wallet1];
 
-        toAddress[hash] = sender2;
-        toHash[sender2] = hash;
+        toAddress[_email] = _wallet2;
+        toHash[_wallet2] = _email;
 
-        nonce[sender1]++;
-        nonce[sender2]++;
+        nonce[_wallet1]++;
+        nonce[_wallet2]++;
 
-        emit UpdatedLinkItem(hash, sender1, sender2);
+        emit UpdatedLinkItem(_email, _wallet1, _wallet2);
     }
 
     function addRequest(bytes32 _email, address _wallet, bytes calldata _signature) public {
