@@ -15,10 +15,11 @@ chai.use(solidity);
 
 describe("Test for LinkCollection", () => {
     const provider = hre.waffle.provider;
-    const [admin, owner, user1, user2, user3, validator1, validator2, validator3] = provider.getWallets();
+    const [admin, owner, user1, user2, user3, relay, validator1, validator2, validator3] = provider.getWallets();
 
     const validators = [validator1, validator2, validator3];
     let contract: LinkCollection;
+    let expectedId: number;
 
     before(async () => {
         const factory = await hre.ethers.getContractFactory("LinkCollection");
@@ -27,16 +28,27 @@ describe("Test for LinkCollection", () => {
         await contract.deployTransaction.wait();
     });
 
-    it("Add an item", async () => {
+    it("Add an request item", async () => {
         const nonce = await contract.nonce(user1.address);
         assert.deepStrictEqual(nonce.toString(), "0");
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
-        await expect(contract.connect(validators[0]).add(hash, user1.address, signature))
-            .to.emit(contract, "AddedLinkItem")
-            .withArgs(hash, user1.address);
+        expectedId = 0;
+        await expect(contract.connect(relay).addRequest(hash, user1.address, signature))
+            .to.emit(contract, "AddedRequestItem")
+            .withArgs(expectedId, hash, user1.address);
         assert.deepStrictEqual((await contract.nonce(user1.address)).toString(), "1");
+    });
+
+    it("Vote of request item", async () => {
+        const email = "abc@example.com";
+        const hash = ContractUtils.sha256String(email);
+        await contract.connect(validator1).voteRequest(expectedId, 1);
+        await expect(contract.connect(validator2).voteRequest(expectedId, 1))
+            .to.emit(contract, "AcceptedRequestItem")
+            .withArgs(expectedId, hash, user1.address);
+
         assert.deepStrictEqual(await contract.toAddress(hash), user1.address);
         assert.deepStrictEqual(await contract.toHash(user1.address), hash);
     });
@@ -46,7 +58,9 @@ describe("Test for LinkCollection", () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user2, hash, nonce);
-        await expect(contract.connect(validators[1]).add(hash, user2.address, signature)).to.be.revertedWith("E001");
+        await expect(contract.connect(validators[1]).addRequest(hash, user2.address, signature)).to.be.revertedWith(
+            "E001"
+        );
     });
 
     it("Add an item with the same address", async () => {
@@ -54,7 +68,7 @@ describe("Test for LinkCollection", () => {
         const email = "def@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
-        await expect(contract.connect(validators[2]).add(hash, user1.address, signature)).to.be.revertedWith("E002");
+        await expect(contract.connect(relay).addRequest(hash, user1.address, signature)).to.be.revertedWith("E002");
     });
 
     it("Update an item", async () => {
@@ -66,7 +80,7 @@ describe("Test for LinkCollection", () => {
         const nonce2 = await contract.nonce(user2.address);
         const signature2 = await ContractUtils.sign(user2, hash, nonce2);
 
-        await expect(contract.connect(validators[2]).update(hash, user1.address, signature1, user2.address, signature2))
+        await expect(contract.connect(relay).update(hash, user1.address, signature1, user2.address, signature2))
             .to.emit(contract, "UpdatedLinkItem")
             .withArgs(hash, user1.address, user2.address);
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
@@ -79,6 +93,6 @@ describe("Test for LinkCollection", () => {
         expect(hash).to.equal("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         const nonce = await contract.nonce(user3.address);
         const signature = await ContractUtils.sign(user3, hash, nonce);
-        await expect(contract.connect(validators[1]).add(hash, user3.address, signature)).to.be.revertedWith("E001");
+        await expect(contract.connect(relay).addRequest(hash, user3.address, signature)).to.be.revertedWith("E001");
     });
 });
