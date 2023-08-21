@@ -1,0 +1,44 @@
+specVersion: 0.0.5
+description: A template for decentralized email-wallet linker subgraphs
+repository: https://github.com/bosagora/del-osx
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: {{dataSources.LinkCollection.name}}
+    network: {{network}}
+    source:
+      address: '{{dataSources.LinkCollection.address}}'
+      abi: LinkCollection
+      startBlock: {{dataSources.LinkCollection.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - AcceptedRequestItem
+        - AddedRequestItem
+        - RejectedRequestItem
+        - RoleAdminChanged
+        - RoleGranted
+        - RoleRevoked
+        - UpdatedLinkItem
+      abis:
+        - name: LinkCollection
+          file:  $DMS_OSX_MODULE/artifacts/contracts/LinkCollection.sol/LinkCollection.json
+      eventHandlers:
+        - event: AcceptedRequestItem(uint256,bytes32,address)
+          handler: handleAcceptedRequestItem
+        - event: AddedRequestItem(uint256,bytes32,address)
+          handler: handleAddedRequestItem
+        - event: RejectedRequestItem(uint256,bytes32,address)
+          handler: handleRejectedRequestItem
+        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleRoleAdminChanged
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+        - event: UpdatedLinkItem(bytes32,address,address)
+          handler: handleUpdatedLinkItem
+      file: ./src/link-collection.ts

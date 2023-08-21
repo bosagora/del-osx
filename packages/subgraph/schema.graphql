@@ -1,0 +1,69 @@
+type AcceptedRequestItem @entity(immutable: true) {
+  id: Bytes!
+  LinkCollection_id: BigInt! # uint256
+  hash: Bytes! # bytes32
+  sender: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type AddedRequestItem @entity(immutable: true) {
+  id: Bytes!
+  LinkCollection_id: BigInt! # uint256
+  email: Bytes! # bytes32
+  wallet: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RejectedRequestItem @entity(immutable: true) {
+  id: Bytes!
+  LinkCollection_id: BigInt! # uint256
+  hash: Bytes! # bytes32
+  sender: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoleAdminChanged @entity(immutable: true) {
+  id: Bytes!
+  role: Bytes! # bytes32
+  previousAdminRole: Bytes! # bytes32
+  newAdminRole: Bytes! # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoleGranted @entity(immutable: true) {
+  id: Bytes!
+  role: Bytes! # bytes32
+  account: Bytes! # address
+  sender: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoleRevoked @entity(immutable: true) {
+  id: Bytes!
+  role: Bytes! # bytes32
+  account: Bytes! # address
+  sender: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type UpdatedLinkItem @entity(immutable: true) {
+  id: Bytes!
+  hash: Bytes! # bytes32
+  sender1: Bytes! # address
+  sender2: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
