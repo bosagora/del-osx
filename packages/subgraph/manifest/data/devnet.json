@@ -1,0 +1,11 @@
+{
+    "info": "# Do not edit subgraph.yaml,this is a generated file. \n# Instead, edit subgraph.placeholder.yaml and run: yarn manifest",
+    "network": "devnet",
+    "dataSources": {
+        "LinkCollection": {
+            "name": "LinkCollection",
+            "address": "0xFDa3d1ff3C570c2f76c2157Ef7A8640A75794eD9",
+            "startBlock": 1
+        }
+    }
+}
