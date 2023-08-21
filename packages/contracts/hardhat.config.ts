@@ -62,21 +62,6 @@ function getAccounts() {
         accounts.push(process.env.VALIDATOR3);
     }
 
-    if (
-        process.env.VALIDATOR4 !== undefined &&
-        process.env.VALIDATOR4.trim() !== "" &&
-        reg_bytes64.test(process.env.VALIDATOR4)
-    ) {
-        accounts.push(process.env.VALIDATOR4);
-    }
-
-    if (
-        process.env.VALIDATOR5 !== undefined &&
-        process.env.VALIDATOR5.trim() !== "" &&
-        reg_bytes64.test(process.env.VALIDATOR5)
-    ) {
-        accounts.push(process.env.VALIDATOR5);
-    }
     return accounts;
 }
 
