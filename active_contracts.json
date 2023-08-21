@@ -1,11 +1,11 @@
 {
-  "mainnet": {
-    "LinkCollection": "0x4Ca91738C7cD24895467c6d550D96BE8dC4b33AA"
+  "bosagora_mainnet": {
+    "LinkCollection": "0xFDa3d1ff3C570c2f76c2157Ef7A8640A75794eD9"
   },
-  "testnet": {
-    "LinkCollection": "0x4Ca91738C7cD24895467c6d550D96BE8dC4b33AA"
+  "bosagora_testnet": {
+    "LinkCollection": "0xFDa3d1ff3C570c2f76c2157Ef7A8640A75794eD9"
   },
-  "localhost": {
-    "LinkCollection": "0x4Ca91738C7cD24895467c6d550D96BE8dC4b33AA"
+  "bosagora_devnet": {
+    "LinkCollection": "0xFDa3d1ff3C570c2f76c2157Ef7A8640A75794eD9"
   }
 }

@@ -4,7 +4,7 @@ import "hardhat-deploy";
 import { DeployFunction } from "hardhat-deploy/types";
 // tslint:disable-next-line:no-submodule-imports
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { LinkCollection } from "../typechain-types";
+import { LinkCollection } from "../../typechain-types";
 
 // tslint:disable-next-line:only-arrow-functions
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

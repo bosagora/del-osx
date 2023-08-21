@@ -1,6 +1,6 @@
 {
-    "name": "link-email-wallet-osx-artifacts",
-    "version": "1.0.3",
+    "name": "del-osx-artifacts",
+    "version": "1.0.4",
     "description": "Contracts that links e-mail and wallet addresses",
     "files": [
         "**/*.sol"
@@ -12,9 +12,9 @@
         "build:npm": "rollup --config rollup.config.ts",
         "coverage": "hardhat coverage --solcoverjs ./.solcover.js",
         "deploy:hardhat": "npx hardhat deploy",
-        "deploy:mainnet": "npx hardhat deploy --network mainnet",
-        "deploy:testnet": "npx hardhat deploy --network testnet",
-        "deploy:localhost": "npx hardhat deploy --network localhost",
+        "deploy:mainnet": "npx hardhat deploy --network bosagora_mainnet",
+        "deploy:testnet": "npx hardhat deploy --network bosagora_testnet",
+        "deploy:devnet": "npx hardhat deploy --network bosagora_devnet",
         "lint": "node_modules/.bin/tslint --config tslint.json \"{src,test}/**/*.ts\"",
         "lint-fix": "node_modules/.bin/tslint --fix --config tslint.json \"{src,test}/**/*.ts\"",
         "docgen": "hardhat docgen",
@@ -23,7 +23,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/bosagora/link-email-wallet-osx.git"
+        "url": "git+https://github.com/bosagora/del-osx.git"
     },
     "author": "BOSagora Foundation",
     "bugs": {
