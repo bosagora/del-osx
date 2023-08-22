@@ -18,14 +18,14 @@ import { createAcceptedRequestItemEvent } from "./link-collection-utils"
 describe("Describe entity assertions", () => {
   beforeAll(() => {
     let id = BigInt.fromI32(234)
-    let hash = Bytes.fromI32(1234567890)
-    let sender = Address.fromString(
+    let email = Bytes.fromI32(1234567890)
+    let wallet = Address.fromString(
       "0x0000000000000000000000000000000000000001"
     )
     let newAcceptedRequestItemEvent = createAcceptedRequestItemEvent(
       id,
-      hash,
-      sender
+      email,
+      wallet
     )
     handleAcceptedRequestItem(newAcceptedRequestItemEvent)
   })
@@ -44,13 +44,13 @@ describe("Describe entity assertions", () => {
     assert.fieldEquals(
       "AcceptedRequestItem",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "hash",
+      "email",
       "1234567890"
     )
     assert.fieldEquals(
       "AcceptedRequestItem",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "sender",
+      "wallet",
       "0x0000000000000000000000000000000000000001"
     )
 

@@ -1,7 +1,11 @@
 [
   {
     "inputs": [
-      { "internalType": "address[]", "name": "validators", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "_validators",
+        "type": "address[]"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
@@ -18,13 +22,13 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "hash",
+        "name": "email",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "sender",
+        "name": "wallet",
         "type": "address"
       }
     ],
@@ -68,13 +72,13 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "hash",
+        "name": "email",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "sender",
+        "name": "wallet",
         "type": "address"
       }
     ],
@@ -85,96 +89,21 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "previousAdminRole",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "newAdminRole",
-        "type": "bytes32"
-      }
-    ],
-    "name": "RoleAdminChanged",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "RoleGranted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "RoleRevoked",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "hash",
+        "name": "email",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "sender1",
+        "name": "wallet1",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "sender2",
+        "name": "wallet2",
         "type": "address"
       }
     ],
@@ -183,37 +112,34 @@
   },
   {
     "inputs": [],
-    "name": "DEFAULT_ADMIN_ROLE",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "LINK_COLLECTION_ADMIN_ROLE",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "NULL",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "VALIDATOR_ROLE",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "bytes32", "name": "_email", "type": "bytes32" },
-      { "internalType": "address", "name": "_wallet", "type": "address" },
-      { "internalType": "bytes", "name": "_signature", "type": "bytes" }
+      {
+        "internalType": "bytes32",
+        "name": "_email",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "_wallet",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_signature",
+        "type": "bytes"
+      }
     ],
     "name": "addRequest",
     "outputs": [],
@@ -222,90 +148,88 @@
   },
   {
     "inputs": [
-      { "internalType": "bytes32", "name": "role", "type": "bytes32" }
+      {
+        "internalType": "address",
+        "name": "_wallet",
+        "type": "address"
+      }
     ],
-    "name": "getRoleAdmin",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "name": "nonceOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
-      { "internalType": "address", "name": "account", "type": "address" }
+      {
+        "internalType": "bytes32",
+        "name": "_email",
+        "type": "bytes32"
+      }
     ],
-    "name": "grantRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
-      { "internalType": "address", "name": "account", "type": "address" }
-    ],
-    "name": "hasRole",
-    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "name": "nonce",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
-      { "internalType": "address", "name": "account", "type": "address" }
-    ],
-    "name": "renounceRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
-      { "internalType": "address", "name": "account", "type": "address" }
-    ],
-    "name": "revokeRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "bytes4", "name": "interfaceId", "type": "bytes4" }
-    ],
-    "name": "supportsInterface",
-    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
     "name": "toAddress",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "name": "toHash",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "bytes32", "name": "hash", "type": "bytes32" },
-      { "internalType": "address", "name": "sender1", "type": "address" },
-      { "internalType": "bytes", "name": "signature1", "type": "bytes" },
-      { "internalType": "address", "name": "sender2", "type": "address" },
-      { "internalType": "bytes", "name": "signature2", "type": "bytes" }
+      {
+        "internalType": "address",
+        "name": "_wallet",
+        "type": "address"
+      }
+    ],
+    "name": "toEmail",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_email",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "_wallet1",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_signature1",
+        "type": "bytes"
+      },
+      {
+        "internalType": "address",
+        "name": "_wallet2",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_signature2",
+        "type": "bytes"
+      }
     ],
     "name": "update",
     "outputs": [],
@@ -314,7 +238,11 @@
   },
   {
     "inputs": [
-      { "internalType": "uint256", "name": "_id", "type": "uint256" },
+      {
+        "internalType": "uint256",
+        "name": "_id",
+        "type": "uint256"
+      },
       {
         "internalType": "enum LinkCollection.Ballot",
         "name": "_ballot",

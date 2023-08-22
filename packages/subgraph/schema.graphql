@@ -1,8 +1,8 @@
 type AcceptedRequestItem @entity(immutable: true) {
   id: Bytes!
   LinkCollection_id: BigInt! # uint256
-  hash: Bytes! # bytes32
-  sender: Bytes! # address
+  email: Bytes! # bytes32
+  wallet: Bytes! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -21,8 +21,8 @@ type AddedRequestItem @entity(immutable: true) {
 type RejectedRequestItem @entity(immutable: true) {
   id: Bytes!
   LinkCollection_id: BigInt! # uint256
-  hash: Bytes! # bytes32
-  sender: Bytes! # address
+  email: Bytes! # bytes32
+  wallet: Bytes! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -30,9 +30,9 @@ type RejectedRequestItem @entity(immutable: true) {
 
 type UpdatedLinkItem @entity(immutable: true) {
   id: Bytes!
-  hash: Bytes! # bytes32
-  sender1: Bytes! # address
-  sender2: Bytes! # address
+  email: Bytes! # bytes32
+  wallet1: Bytes! # address
+  wallet2: Bytes! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
