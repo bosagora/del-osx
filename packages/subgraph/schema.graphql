@@ -1,38 +1,23 @@
-type AcceptedRequestItem @entity(immutable: true) {
-  id: Bytes!
-  LinkCollection_id: BigInt! # uint256
+enum RequestStatus {
+  INVALID,
+  REQUESTED,
+  ACCEPTED,
+  REJECTED
+}
+
+type RequestItems @entity {
+  id: ID! # id
   email: Bytes! # bytes32
   wallet: Bytes! # address
+  status: RequestStatus!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
 }
 
-type AddedRequestItem @entity(immutable: true) {
-  id: Bytes!
-  LinkCollection_id: BigInt! # uint256
-  email: Bytes! # bytes32
+type LinkItems @entity {
+  id: ID! # email
   wallet: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RejectedRequestItem @entity(immutable: true) {
-  id: Bytes!
-  LinkCollection_id: BigInt! # uint256
-  email: Bytes! # bytes32
-  wallet: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type UpdatedLinkItem @entity(immutable: true) {
-  id: Bytes!
-  email: Bytes! # bytes32
-  wallet1: Bytes! # address
-  wallet2: Bytes! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

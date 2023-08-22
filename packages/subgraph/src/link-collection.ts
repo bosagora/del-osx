@@ -4,22 +4,14 @@ import {
   RejectedRequestItem as RejectedRequestItemEvent,
   UpdatedLinkItem as UpdatedLinkItemEvent,
 } from "../generated/LinkCollection/LinkCollection";
-import {
-  AcceptedRequestItem,
-  AddedRequestItem,
-  RejectedRequestItem,
-  UpdatedLinkItem,
-} from "../generated/schema";
+import { LinkItems, RequestItems } from "../generated/schema";
 
-export function handleAcceptedRequestItem(
-  event: AcceptedRequestItemEvent
-): void {
-  let entity = new AcceptedRequestItem(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  );
-  entity.LinkCollection_id = event.params.id;
+export function handleAddedRequestItem(event: AddedRequestItemEvent): void {
+  let entity = new RequestItems(event.params.id.toString());
   entity.email = event.params.email;
   entity.wallet = event.params.wallet;
+  entity.email = event.params.email;
+  entity.status = "REQUESTED";
 
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
@@ -28,30 +20,46 @@ export function handleAcceptedRequestItem(
   entity.save();
 }
 
-export function handleAddedRequestItem(event: AddedRequestItemEvent): void {
-  let entity = new AddedRequestItem(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  );
-  entity.LinkCollection_id = event.params.id;
+export function handleAcceptedRequestItem(
+  event: AcceptedRequestItemEvent
+): void {
+  let entity = RequestItems.load(event.params.id.toString());
+  if (entity === null) {
+    entity = new RequestItems(event.params.id.toString());
+  }
   entity.email = event.params.email;
   entity.wallet = event.params.wallet;
+  entity.email = event.params.email;
+  entity.status = "ACCEPTED";
 
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
   entity.transactionHash = event.transaction.hash;
 
   entity.save();
+
+  let linkEntity = LinkItems.load(event.params.email.toHex());
+  if (linkEntity === null) {
+    linkEntity = new LinkItems(event.params.email.toHex());
+  }
+  linkEntity.wallet = event.params.wallet;
+  linkEntity.blockNumber = event.block.number;
+  linkEntity.blockTimestamp = event.block.timestamp;
+  linkEntity.transactionHash = event.transaction.hash;
+  linkEntity.save();
 }
 
 export function handleRejectedRequestItem(
   event: RejectedRequestItemEvent
 ): void {
-  let entity = new RejectedRequestItem(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  );
-  entity.LinkCollection_id = event.params.id;
+  let entity = RequestItems.load(event.params.id.toString());
+  if (entity === null) {
+    entity = new RequestItems(event.params.id.toString());
+  }
   entity.email = event.params.email;
   entity.wallet = event.params.wallet;
+  entity.email = event.params.email;
+  entity.status = "REJECTED";
 
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
@@ -61,16 +69,13 @@ export function handleRejectedRequestItem(
 }
 
 export function handleUpdatedLinkItem(event: UpdatedLinkItemEvent): void {
-  let entity = new UpdatedLinkItem(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  );
-  entity.email = event.params.email;
-  entity.wallet1 = event.params.wallet1;
-  entity.wallet2 = event.params.wallet2;
-
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash;
-
-  entity.save();
+  let linkEntity = LinkItems.load(event.params.email.toHex());
+  if (linkEntity === null) {
+    linkEntity = new LinkItems(event.params.email.toHex());
+  }
+  linkEntity.wallet = event.params.wallet2;
+  linkEntity.blockNumber = event.block.number;
+  linkEntity.blockTimestamp = event.block.timestamp;
+  linkEntity.transactionHash = event.transaction.hash;
+  linkEntity.save();
 }
