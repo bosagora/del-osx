@@ -29,7 +29,7 @@ describe("Test for LinkCollection", () => {
     });
 
     it("Add an request item", async () => {
-        const nonce = await contract.nonce(user1.address);
+        const nonce = await contract.nonceOf(user1.address);
         assert.deepStrictEqual(nonce.toString(), "0");
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
@@ -38,7 +38,7 @@ describe("Test for LinkCollection", () => {
         await expect(contract.connect(relay).addRequest(hash, user1.address, signature))
             .to.emit(contract, "AddedRequestItem")
             .withArgs(expectedId, hash, user1.address);
-        assert.deepStrictEqual((await contract.nonce(user1.address)).toString(), "1");
+        assert.deepStrictEqual((await contract.nonceOf(user1.address)).toString(), "1");
     });
 
     it("Vote of request item", async () => {
@@ -50,11 +50,11 @@ describe("Test for LinkCollection", () => {
             .withArgs(expectedId, hash, user1.address);
 
         assert.deepStrictEqual(await contract.toAddress(hash), user1.address);
-        assert.deepStrictEqual(await contract.toHash(user1.address), hash);
+        assert.deepStrictEqual(await contract.toEmail(user1.address), hash);
     });
 
     it("Add an item with the same email", async () => {
-        const nonce = await contract.nonce(user2.address);
+        const nonce = await contract.nonceOf(user2.address);
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user2, hash, nonce);
@@ -64,7 +64,7 @@ describe("Test for LinkCollection", () => {
     });
 
     it("Add an item with the same address", async () => {
-        const nonce = await contract.nonce(user1.address);
+        const nonce = await contract.nonceOf(user1.address);
         const email = "def@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
@@ -74,24 +74,24 @@ describe("Test for LinkCollection", () => {
     it("Update an item", async () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
-        const nonce1 = await contract.nonce(user1.address);
+        const nonce1 = await contract.nonceOf(user1.address);
         const signature1 = await ContractUtils.sign(user1, hash, nonce1);
 
-        const nonce2 = await contract.nonce(user2.address);
+        const nonce2 = await contract.nonceOf(user2.address);
         const signature2 = await ContractUtils.sign(user2, hash, nonce2);
 
         await expect(contract.connect(relay).update(hash, user1.address, signature1, user2.address, signature2))
             .to.emit(contract, "UpdatedLinkItem")
             .withArgs(hash, user1.address, user2.address);
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
-        assert.deepStrictEqual(await contract.toHash(user2.address), hash);
+        assert.deepStrictEqual(await contract.toEmail(user2.address), hash);
     });
 
     it("Check Null", async () => {
         const email = "";
         const hash = ContractUtils.sha256String(email);
         expect(hash).to.equal("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-        const nonce = await contract.nonce(user3.address);
+        const nonce = await contract.nonceOf(user3.address);
         const signature = await ContractUtils.sign(user3, hash, nonce);
         await expect(contract.connect(relay).addRequest(hash, user3.address, signature)).to.be.revertedWith("E001");
     });

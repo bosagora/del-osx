@@ -13,13 +13,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 contract LinkCollection {
     bytes32 public constant NULL = 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
 
-    /// Mapping for converting email to wallet address
-    mapping(bytes32 => address) public toAddress;
-
-    /// Mapping for converting wallet address to email
-    mapping(address => bytes32) public toHash;
-
-    mapping(address => uint256) public nonce;
+    mapping(bytes32 => address) private emailToAddress;
+    mapping(address => bytes32) private addressToEmail;
+    mapping(address => uint256) private nonce;
 
     /// @notice 요청 아이템의 상태코드
     enum RequestStatus {
@@ -73,7 +69,7 @@ contract LinkCollection {
     /// @notice 등록요청이 거부된 후 발생되는 이벤트
     event RejectedRequestItem(uint256 id, bytes32 email, address wallet);
     /// @notice 항목이 업데이트 후 발생되는 이벤트
-    event UpdatedLinkItem(bytes32 email, address wallet1, address _wallet2);
+    event UpdatedLinkItem(bytes32 email, address wallet1, address wallet2);
 
     /// @notice 생성자
     /// @param _validators 검증자들
@@ -114,15 +110,15 @@ contract LinkCollection {
         bytes32 dataHash2 = keccak256(abi.encode(_email, _wallet2, nonce[_wallet2]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "E000");
 
-        require(toAddress[_email] == _wallet1, "E001");
-        require(toHash[_wallet1] == _email, "E002");
-        require(toHash[_wallet2] == bytes32(0x00), "E002");
+        require(emailToAddress[_email] == _wallet1, "E001");
+        require(addressToEmail[_wallet1] == _email, "E002");
+        require(addressToEmail[_wallet2] == bytes32(0x00), "E002");
         require(_wallet1 != _wallet2, "E002");
 
-        delete toHash[_wallet1];
+        delete addressToEmail[_wallet1];
 
-        toAddress[_email] = _wallet2;
-        toHash[_wallet2] = _email;
+        emailToAddress[_email] = _wallet2;
+        addressToEmail[_wallet2] = _email;
 
         nonce[_wallet1]++;
         nonce[_wallet2]++;
@@ -139,8 +135,8 @@ contract LinkCollection {
         bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "E000");
 
-        require(toAddress[_email] == address(0x00), "E001");
-        require(toHash[_wallet] == bytes32(0x00), "E002");
+        require(emailToAddress[_email] == address(0x00), "E001");
+        require(addressToEmail[_wallet] == bytes32(0x00), "E002");
 
         nonce[_wallet]++;
 
@@ -179,10 +175,11 @@ contract LinkCollection {
 
                 if ((requests[_id].agreement * 1000) / validatorItems.length >= quorum) {
                     if (
-                        toAddress[requests[_id].email] == address(0x00) && toHash[requests[_id].wallet] == bytes32(0x00)
+                        emailToAddress[requests[_id].email] == address(0x00) &&
+                        addressToEmail[requests[_id].wallet] == bytes32(0x00)
                     ) {
-                        toAddress[requests[_id].email] = requests[_id].wallet;
-                        toHash[requests[_id].wallet] = requests[_id].email;
+                        emailToAddress[requests[_id].email] = requests[_id].wallet;
+                        addressToEmail[requests[_id].wallet] = requests[_id].email;
                         requests[_id].status = RequestStatus.ACCEPTED;
                         emit AcceptedRequestItem(requests[_id].id, requests[_id].email, requests[_id].wallet);
                     } else {
@@ -192,5 +189,23 @@ contract LinkCollection {
                 }
             }
         }
+    }
+
+    /// @notice 이메일해시와 연결된 지갑주소를 리턴한다.
+    /// @param _email 이메일의 해시
+    function toAddress(bytes32 _email) public view returns (address) {
+        return emailToAddress[_email];
+    }
+
+    /// @notice 지갑주소와 연결된 이메일해시를 리턴한다.
+    /// @param _wallet 지갑주소
+    function toEmail(address _wallet) public view returns (bytes32) {
+        return addressToEmail[_wallet];
+    }
+
+    /// @notice nonce를  리턴한다
+    /// @param _wallet 지갑주소
+    function nonceOf(address _wallet) public view returns (uint256) {
+        return nonce[_wallet];
     }
 }
