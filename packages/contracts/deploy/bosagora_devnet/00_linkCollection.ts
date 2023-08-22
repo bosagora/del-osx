@@ -18,7 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deployments, getNamedAccounts, ethers } = hre;
     const { deploy } = deployments;
     const { deployer, owner, validator1, validator2, validator3 } = await getNamedAccounts();
-    const validators = [validator1, validator2, validator3];
+    const validators = [validator1];
 
     const deployResult = await deploy("LinkCollection", {
         from: deployer,
@@ -34,7 +34,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         )) as LinkCollection;
 
         const foundationAccount = ContractUtils.sha256String(process.env.FOUNDATION_EMAIL || "");
-        const nonce = await linkCollectionContract.nonce(owner);
+        const nonce = await linkCollectionContract.nonceOf(owner);
         const signature = await ContractUtils.sign(await ethers.getSigner(owner), foundationAccount, nonce);
 
         const tx1 = await linkCollectionContract
@@ -53,17 +53,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`Vote of validator1 (tx: ${tx2.hash})...`);
         await tx2.wait();
 
-        const tx3 = await linkCollectionContract.connect(await ethers.getSigner(validator2)).voteRequest(reqId, 1);
-        console.log(`Vote of validator2 (tx: ${tx3.hash})...`);
-        await tx3.wait();
-
+        if ((await linkCollectionContract.toAddress(foundationAccount)) === owner) {
+            console.log(`Success ${owner}`);
+        } else {
+            console.log(`Fail ${owner}`);
+        }
         console.log(`Foundation address : ${await linkCollectionContract.toAddress(foundationAccount)}`);
 
         const users = JSON.parse(fs.readFileSync("./deploy/data/users.json", "utf8"));
         for (const user of users) {
             if (!user.register) continue;
             const userAccount = ContractUtils.sha256String(user.email);
-            const userNonce = await linkCollectionContract.nonce(user.address);
+            const userNonce = await linkCollectionContract.nonceOf(user.address);
             const userSignature = await ContractUtils.sign(new Wallet(user.privateKey), userAccount, userNonce);
             const tx5 = await linkCollectionContract
                 .connect(await ethers.getSigner(validators[0]))
@@ -81,9 +82,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             console.log(`Vote of validator1 (tx: ${tx6.hash})...`);
             await tx6.wait();
 
-            const tx7 = await linkCollectionContract.connect(await ethers.getSigner(validator2)).voteRequest(reqId2, 1);
-            console.log(`Vote of validator2 (tx: ${tx7.hash})...`);
-            await tx7.wait();
+            if ((await linkCollectionContract.toAddress(userAccount)) === user.address) {
+                console.log(`Success ${user.address}`);
+            } else {
+                console.log(`Fail ${user.address}`);
+            }
         }
     }
 };
