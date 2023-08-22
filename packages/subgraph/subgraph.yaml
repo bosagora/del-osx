@@ -19,9 +19,6 @@ dataSources:
         - AcceptedRequestItem
         - AddedRequestItem
         - RejectedRequestItem
-        - RoleAdminChanged
-        - RoleGranted
-        - RoleRevoked
         - UpdatedLinkItem
       abis:
         - name: LinkCollection
@@ -33,12 +30,6 @@ dataSources:
           handler: handleAddedRequestItem
         - event: RejectedRequestItem(uint256,bytes32,address)
           handler: handleRejectedRequestItem
-        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
-          handler: handleRoleAdminChanged
-        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
-          handler: handleRoleGranted
-        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
-          handler: handleRoleRevoked
         - event: UpdatedLinkItem(bytes32,address,address)
           handler: handleUpdatedLinkItem
       file: ./src/link-collection.ts
