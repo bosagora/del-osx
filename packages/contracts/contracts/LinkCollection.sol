@@ -3,16 +3,14 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 
 // E000 : invalid signature
 // E001 : invalid email hash
 // E002 : invalid address
+// E003 : not validator
 
 /// Contract for converting e-mail to wallet
-contract LinkCollection is AccessControl {
-    bytes32 public constant LINK_COLLECTION_ADMIN_ROLE = keccak256("LINK_COLLECTION_ADMIN_ROLE");
-    bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE");
+contract LinkCollection {
     bytes32 public constant NULL = 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
 
     /// Mapping for converting email to wallet address
@@ -23,7 +21,7 @@ contract LinkCollection is AccessControl {
 
     mapping(address => uint256) public nonce;
 
-    /// @notice 검증자의 상태코드
+    /// @notice 요청 아이템의 상태코드
     enum RequestStatus {
         INVALID,
         REQUESTED,
@@ -31,7 +29,7 @@ contract LinkCollection is AccessControl {
         REJECTED
     }
 
-    struct RequestData {
+    struct RequestItem {
         uint256 id;
         bytes32 email;
         address wallet;
@@ -42,7 +40,7 @@ contract LinkCollection is AccessControl {
         mapping(address => Ballot) ballots;
         RequestStatus status;
     }
-    mapping(uint256 => RequestData) private requests;
+    mapping(uint256 => RequestItem) private requests;
 
     enum Ballot {
         NONE,
@@ -52,45 +50,56 @@ contract LinkCollection is AccessControl {
     }
 
     uint256 private quorum;
-    uint256 private validatorLength;
     uint256 private latestId;
 
+    /// @notice 검증자의 상태코드
+    enum ValidatorStatus {
+        INVALID, //  초기값
+        ACTIVE //  검증자의 기능이 활성화됨
+    }
+
+    struct ValidatorItem {
+        address validator; // 검증자의 지갑주소
+        ValidatorStatus status; // 검증자의 상태
+    }
+
+    mapping(address => ValidatorItem) private validators;
+    address[] private validatorItems;
+
+    /// @notice 등록요청인 완료된 후 발생되는 이벤트
     event AddedRequestItem(uint256 id, bytes32 email, address wallet);
+    /// @notice 등록요청이 승인된 후 발생되는 이벤트
     event AcceptedRequestItem(uint256 id, bytes32 email, address wallet);
+    /// @notice 등록요청이 거부된 후 발생되는 이벤트
     event RejectedRequestItem(uint256 id, bytes32 email, address wallet);
+    /// @notice 항목이 업데이트 후 발생되는 이벤트
     event UpdatedLinkItem(bytes32 email, address wallet1, address _wallet2);
 
+    /// @notice 생성자
+    /// @param _validators 검증자들
     constructor(address[] memory _validators) {
-        _setRoleAdmin(LINK_COLLECTION_ADMIN_ROLE, LINK_COLLECTION_ADMIN_ROLE);
-        _setRoleAdmin(VALIDATOR_ROLE, LINK_COLLECTION_ADMIN_ROLE);
-
-        // self administration
-        _setupRole(LINK_COLLECTION_ADMIN_ROLE, address(this));
-
-        // register validators
         for (uint256 i = 0; i < _validators.length; ++i) {
-            _setupRole(VALIDATOR_ROLE, _validators[i]);
+            ValidatorItem memory item = ValidatorItem({ validator: _validators[i], status: ValidatorStatus.ACTIVE });
+            validatorItems.push(_validators[i]);
+            validators[_validators[i]] = item;
         }
 
-        validatorLength = _validators.length;
         quorum = uint256(2000) / uint256(3);
         latestId = 0;
     }
 
-    /**
-     * @dev Modifier to make a function callable only by a certain role. In
-     * addition to checking the sender's role, `address(0)` 's role is also
-     * considered. Granting a role to `address(0)` is equivalent to enabling
-     * this role for everyone.
-     */
-    modifier onlyRoleOrOpenRole(bytes32 role) {
-        if (!hasRole(role, address(0))) {
-            _checkRole(role, _msgSender());
-        }
+    /// @notice 검증자들만 호출할 수 있도록 해준다.
+    modifier onlyValidator() {
+        require(validators[msg.sender].status == ValidatorStatus.ACTIVE, "E003");
         _;
     }
 
-    /// Update an item
+    /// @notice 이메일-지갑주소 항목을 업데이트 한다
+    /// @param _email 이메일의 해시
+    /// @param _wallet1 현재 지갑주소
+    /// @param _signature1 현재 지갑주소의 서명
+    /// @param _wallet2 새로운 지갑주소
+    /// @param _signature2 새로운 지갑주소의 서명
     function update(
         bytes32 _email,
         address _wallet1,
@@ -121,6 +130,10 @@ contract LinkCollection is AccessControl {
         emit UpdatedLinkItem(_email, _wallet1, _wallet2);
     }
 
+    /// @notice 이메일-지갑주소 항목의 등록을 요청한다
+    /// @param _email 이메일의 해시
+    /// @param _wallet 지갑주소
+    /// @param _signature 지갑주소의 서명
     function addRequest(bytes32 _email, address _wallet, bytes calldata _signature) public {
         require(_email != NULL, "E001");
         bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));
@@ -141,7 +154,10 @@ contract LinkCollection is AccessControl {
         emit AddedRequestItem(id, _email, _wallet);
     }
 
-    function voteRequest(uint _id, Ballot _ballot) public onlyRoleOrOpenRole(VALIDATOR_ROLE) {
+    /// @notice 검증자들이 이메일 검증결과를 등록한다.
+    /// @param _id 요청 아이디
+    /// @param _ballot 이메일 검증결과
+    function voteRequest(uint _id, Ballot _ballot) public onlyValidator {
         require(requests[_id].status != RequestStatus.INVALID, "");
 
         if (requests[_id].status != RequestStatus.ACCEPTED) {
@@ -161,7 +177,7 @@ contract LinkCollection is AccessControl {
                     requests[_id].abstaining++;
                 }
 
-                if ((requests[_id].agreement * 1000) / validatorLength >= quorum) {
+                if ((requests[_id].agreement * 1000) / validatorItems.length >= quorum) {
                     if (
                         toAddress[requests[_id].email] == address(0x00) && toHash[requests[_id].wallet] == bytes32(0x00)
                     ) {
