@@ -6,7 +6,6 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { LinkCollection } from "../../typechain-types";
 
-// tslint:disable-next-line:only-arrow-functions
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\nDeploying LinkCollection.`);
 
@@ -15,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deployer, owner, validator1, validator2, validator3, validator4, validator5 } = await getNamedAccounts();
     const validators = [validator1, validator2, validator3, validator4, validator5];
 
-    const deployResult = await deploy("LinkCollection", {
+    await deploy("LinkCollection", {
         from: deployer,
         args: [validators],
         log: true,

@@ -34,6 +34,7 @@ function getAccounts() {
     ) {
         accounts.push(process.env.DEPLOYER);
     }
+
     if (process.env.OWNER !== undefined && process.env.OWNER.trim() !== "" && reg_bytes64.test(process.env.OWNER)) {
         accounts.push(process.env.OWNER);
     }
