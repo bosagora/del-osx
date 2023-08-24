@@ -1,0 +1,12 @@
+server:
+  address: "0.0.0.0"
+  port: 7071
+
+logging:
+  level: info
+
+contracts:
+  linkCollectionAddress : 0xf1CEFe1b28ee6768597f177eca6616aD44C96418
+
+validator:
+  validator_key: 0xd56ca4bc48b3114d7738236c748e2b75c32c9b1e8b2beb118b83e527ea6ef619

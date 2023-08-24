@@ -1,0 +1,13 @@
+server:
+  address: ${SERVER_ADDRESS}
+  port: ${SERVER_PORT}
+  external: ${SERVER_EXTERNAL_IP}
+
+logging:
+  level: ${LOGGING_LEVEL}
+
+contracts:
+  linkCollectionAddress : ${LINK_COLLECTION_ADDRESS}
+
+validator:
+  validator_key: ${VALIDATOR_KEY}
