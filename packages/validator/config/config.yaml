@@ -11,3 +11,11 @@ contracts:
 
 validator:
   validator_key: ${VALIDATOR_KEY}
+
+peers:
+  - id: ${PEER2_ID}
+    ip: 127.0.0.1
+    port: 7071
+  - id: ${PEER3_ID}
+    ip: 127.0.0.1
+    port: 7072

@@ -3,6 +3,7 @@ import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
 import { ContractUtils } from "../utils/ContractUtils";
+import { Peers } from "./Peers";
 import { ValidatorNode } from "./ValidatorNode";
 
 import { NonceManager } from "@ethersproject/experimental";
@@ -18,13 +19,21 @@ export class Router {
     private readonly _validator: ValidatorNode;
     private readonly _config: Config;
     private readonly _wallet: Wallet;
+    private readonly _peers: Peers;
     private _contract: LinkCollection | undefined;
 
     private readonly nodeInfo: ValidatorNodeInfo;
 
-    constructor(validator: ValidatorNode, config: Config) {
+    private _initialized: boolean = false;
+
+    private _startTimeStamp: number = 0;
+    private _oldTimeStamp: number = 0;
+    private _periodNumber: number = 0;
+
+    constructor(validator: ValidatorNode, config: Config, peers: Peers) {
         this._validator = validator;
         this._config = config;
+        this._peers = peers;
         this._wallet = new Wallet(this._config.validator.validator_key);
 
         this.nodeInfo = {
@@ -33,6 +42,7 @@ export class Router {
             port: this._config.server.port,
             version: "v1.0.0",
         };
+        this._startTimeStamp = ContractUtils.getTimeStamp();
     }
 
     private async getContract(): Promise<LinkCollection> {
@@ -70,6 +80,7 @@ export class Router {
             ],
             this.postRequest.bind(this)
         );
+        this._validator.app.get("/peers", [], this.getPeers.bind(this));
     }
 
     private async getInfo(req: express.Request, res: express.Response) {
@@ -148,5 +159,39 @@ export class Router {
                 })
             );
         }
+    }
+
+    private async getPeers(req: express.Request, res: express.Response) {
+        logger.http(`GET /peers`);
+
+        const data = this._peers.items.map((m) => {
+            return { nodeId: m.nodeId, ip: m.ip, port: m.port, version: m.version, status: m.status };
+        });
+
+        return res.json(this.makeResponseData(200, data, undefined));
+    }
+
+    public async onWork() {
+        const currentTime = ContractUtils.getTimeStamp();
+        if (currentTime - this._startTimeStamp < ValidatorNode.INIT_WAITING_SECONDS) {
+            this._oldTimeStamp = currentTime;
+            return;
+        }
+
+        this._periodNumber = Math.floor(currentTime / ValidatorNode.INTERVAL_SECONDS);
+
+        if (!this._initialized) {
+            await this._peers.check();
+            this._initialized = true;
+        }
+
+        const old_period = Math.floor(this._oldTimeStamp / ValidatorNode.INTERVAL_SECONDS);
+        if (old_period !== this._periodNumber) {
+            await this._peers.check();
+            // 요청을 처리한다.
+            // 진행이 되지 않는 요청을 해결한다.
+            // 검증이 완료된 요청에 대해서 투표를 시작한다. (이것은 별도로 진행해도 됩니다.)
+        }
+        this._oldTimeStamp = currentTime;
     }
 }

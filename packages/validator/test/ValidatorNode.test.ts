@@ -17,7 +17,7 @@ chai.use(solidity);
 describe("Test of ValidatorNode", function () {
     this.timeout(1000 * 60 * 5);
     const provider = hre.waffle.provider;
-    const [deployer, foundation, validator1, user1, user2, user3] = provider.getWallets();
+    const [deployer, validator1, user1, user2, user3] = provider.getWallets();
 
     const validators = [validator1];
     const users = [user1, user2, user3];

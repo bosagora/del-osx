@@ -25,6 +25,10 @@ export class ContractUtils {
         return "0x" + data.toString("hex");
     }
 
+    public static getTimeStamp(): number {
+        return Math.floor(new Date().getTime() / 1000);
+    }
+
     public static async sign(signer: Signer, hash: string, nonce: BigNumberish): Promise<string> {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "address", "uint256"],

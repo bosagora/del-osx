@@ -16,7 +16,8 @@
         "start:devnet": "NODE_ENV=production hardhat run src/main.ts --network bosagora_devnet",
         "formatting:check": "prettier '**/*.{json,sol,ts,js,md}' -c",
         "formatting:write": "prettier '**/*.{json,sol,ts,js,md}' --write",
-        "test:ValidatorNode": "NODE_ENV=test hardhat test test/ValidatorNode.test.ts"
+        "test:ValidatorNode": "NODE_ENV=test hardhat test test/ValidatorNode.test.ts",
+        "test:ValidatorNodes": "NODE_ENV=test hardhat test test/ValidatorNodes.test.ts"
     },
     "repository": {
         "type": "git",
@@ -65,6 +66,7 @@
         "hardhat-gas-reporter": "^1.0.7",
         "ip": "^1.1.5",
         "moment": "^2.29.1",
+        "node-cron": "^3.0.0",
         "prettier": "^2.5.1",
         "prettier-plugin-solidity": "^1.1.1",
         "smart-buffer": "^4.1.0",
