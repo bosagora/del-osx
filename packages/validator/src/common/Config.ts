@@ -15,11 +15,14 @@ export class Config implements IConfig {
 
     public contracts: ContractsConfig;
 
+    public peers: PeerConfig;
+
     constructor() {
         this.server = new ServerConfig();
         this.logging = new LoggingConfig();
         this.validator = new ValidatorConfig();
         this.contracts = new ContractsConfig();
+        this.peers = new PeerConfig();
     }
 
     public static createWithArgument(): Config {
@@ -59,6 +62,7 @@ export class Config implements IConfig {
         this.logging.readFromObject(cfg.logging);
         this.validator.readFromObject(cfg.validator);
         this.contracts.readFromObject(cfg.contracts);
+        this.peers.readFromObject(cfg.peers);
     }
 }
 
@@ -160,6 +164,32 @@ export class LoggingConfig implements ILoggingConfig {
     }
 }
 
+export class PeerConfig implements IPeerConfig {
+    public items: IPeerItemConfig[];
+
+    constructor() {
+        const defaults = PeerConfig.defaultValue();
+        this.items = defaults.items;
+    }
+
+    public static defaultValue(): IPeerConfig {
+        return {
+            items: [],
+        } as unknown as IPeerConfig;
+    }
+
+    public readFromObject(config: IPeerConfig) {
+        this.items = [];
+        if (config === null) return;
+        if (config === undefined) return;
+        if (config.items !== undefined) this.items = config.items;
+    }
+
+    public getPeer(id: string): IPeerItemConfig | undefined {
+        return this.items.find((m) => m.id === id);
+    }
+}
+
 export interface IServerConfig {
     address: string;
     port: number;
@@ -178,9 +208,21 @@ export interface IContractsConfig {
     linkCollectionAddress: string;
 }
 
+export interface IPeerItemConfig {
+    id: string;
+    ip: string;
+    port: number;
+}
+
+export interface IPeerConfig {
+    items: IPeerItemConfig[];
+    getPeer(id: string): IPeerItemConfig | undefined;
+}
+
 export interface IConfig {
     server: IServerConfig;
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;
+    peers: IPeerConfig;
 }
