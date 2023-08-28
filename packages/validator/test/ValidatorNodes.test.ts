@@ -126,5 +126,13 @@ describe("Test of ValidatorNode", function () {
                 assert.deepStrictEqual(response.data.data, expected);
             }
         });
+
+        it("Check validator's endpoint on contract", async () => {
+            for (let idx = 0; idx < maxValidatorCount; idx++) {
+                const res = await linkCollectionContract.getValidator(idx);
+                assert.deepStrictEqual(res.index.toString(), `${idx}`);
+                assert.deepStrictEqual(res.endpoint, `http://${ip.address()}:${7070 + idx}`);
+            }
+        });
     });
 });
