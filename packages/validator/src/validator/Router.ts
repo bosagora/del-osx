@@ -70,12 +70,11 @@ export class Router {
         this._validator.app.post(
             "/request",
             [
-                body("email")
-                    .exists()
-                    .matches(/^(0x)[0-9a-f]{64}$/i),
-                body("address").exists().isEthereumAddress(),
+                body("email").exists().trim().isEmail(),
+                body("address").exists().trim().isEthereumAddress(),
                 body("signature")
                     .exists()
+                    .trim()
                     .matches(/^(0x)[0-9a-f]{130}$/i),
             ],
             this.postRequest.bind(this)
@@ -103,11 +102,11 @@ export class Router {
         }
 
         try {
-            const email: string = String(req.body.email); // 이메일 해시
-            const address: string = String(req.body.address); // 주소
-            const signature: string = String(req.body.signature); // 서명
+            const email: string = String(req.body.email).trim(); // 이메일 해시
+            const address: string = String(req.body.address).trim(); // 주소
+            const signature: string = String(req.body.signature).trim(); // 서명
             const nonce = await (await this.getContract()).nonceOf(address);
-
+            const emailHash = ContractUtils.sha256String(email);
             if (!ContractUtils.verify(address, email, nonce, signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
@@ -116,7 +115,7 @@ export class Router {
                 );
             }
 
-            const emailToAddress: string = await (await this.getContract()).toAddress(email);
+            const emailToAddress: string = await (await this.getContract()).toAddress(emailHash);
             if (emailToAddress !== ContractUtils.NullAddress) {
                 return res.json(
                     this.makeResponseData(402, undefined, {
@@ -135,14 +134,14 @@ export class Router {
             }
 
             try {
-                const tx = await (await this.getContract())
+                const contractTx = await (await this.getContract())
                     .connect(this.getSigner())
-                    .addRequest(email, address, signature);
+                    .addRequest(emailHash, address, signature);
 
                 /// TODO 이메일인증
                 /// TODO 검증자들의 투표
 
-                return res.json(this.makeResponseData(200, { txHash: tx.hash }));
+                return res.json(this.makeResponseData(200, { txHash: contractTx.hash }));
             } catch (error: any) {
                 const message = error.message !== undefined ? error.message : "Failed save request";
                 return res.json(

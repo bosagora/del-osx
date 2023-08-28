@@ -29,21 +29,21 @@ export class ContractUtils {
         return Math.floor(new Date().getTime() / 1000);
     }
 
-    public static async sign(signer: Signer, hash: string, nonce: BigNumberish): Promise<string> {
+    public static getRequestHash(email: string, address: string, nonce: BigNumberish): Uint8Array {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "address", "uint256"],
-            [hash, await signer.getAddress(), nonce]
+            [ContractUtils.sha256String(email), address, nonce]
         );
-        const message = arrayify(hre.ethers.utils.keccak256(encodedResult));
+        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+    }
+
+    public static async sign(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
+        const message = ContractUtils.getRequestHash(email, await signer.getAddress(), nonce);
         return signer.signMessage(message);
     }
 
-    public static verify(address: string, hash: string, nonce: BigNumberish, signature: string): boolean {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "address", "uint256"],
-            [hash, address, nonce]
-        );
-        const message = arrayify(hre.ethers.utils.keccak256(encodedResult));
+    public static verify(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
+        const message = ContractUtils.getRequestHash(email, address, nonce);
         let res: string;
         try {
             res = hre.ethers.utils.verifyMessage(message, signature);
@@ -51,5 +51,17 @@ export class ContractUtils {
             return false;
         }
         return res.toLowerCase() === address.toLowerCase();
+    }
+
+    public static getTxHash(tx: ITransaction): Uint8Array {
+        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "address", "uint256", "address"],
+            [ContractUtils.sha256String(tx.request.email), tx.request.address, tx.request.nonce, tx.receiver]
+        );
+        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+    }
+
+    public static async signTx(signer: Signer, txHash: Uint8Array): Promise<string> {
+        return signer.signMessage(txHash);
     }
 }
