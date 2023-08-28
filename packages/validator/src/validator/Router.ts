@@ -2,13 +2,21 @@ import { LinkCollection } from "../../typechain-types";
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
+import {
+    Ballot,
+    EmailValidationStatus,
+    IEmailValidation,
+    ITransaction,
+    TransactionStatus,
+    ValidatorNodeInfo,
+} from "../types";
 import { ContractUtils } from "../utils/ContractUtils";
 import { Peers } from "./Peers";
 import { ValidatorNode } from "./ValidatorNode";
 
 import { NonceManager } from "@ethersproject/experimental";
 import "@nomiclabs/hardhat-ethers";
-import { Signer, Wallet } from "ethers";
+import { BigNumber, BigNumberish, Signer, Wallet } from "ethers";
 import * as hre from "hardhat";
 
 import express from "express";
@@ -29,6 +37,8 @@ export class Router {
     private _startTimeStamp: number = 0;
     private _oldTimeStamp: number = 0;
     private _periodNumber: number = 0;
+
+    private _validations: Map<string, IEmailValidation> = new Map<string, IEmailValidation>();
 
     constructor(validator: ValidatorNode, config: Config, peers: Peers) {
         this._validator = validator;
@@ -86,14 +96,23 @@ export class Router {
                 body("request").exists(),
                 body("request.email").exists().trim().isEmail(),
                 body("request.address").exists().trim().isEthereumAddress(),
-                body("request.nonce").exists().trim(),
+                body("request.nonce")
+                    .exists()
+                    .trim()
+                    .matches(/^[0-9]+$/),
                 body("request.signature")
                     .exists()
                     .trim()
                     .matches(/^(0x)[0-9a-f]{130}$/i),
-                body("status").exists().trim(),
-                body("requestId").exists().trim(),
-                body("address").exists().trim().isEthereumAddress(),
+                body("status")
+                    .exists()
+                    .trim()
+                    .matches(/^[0-1]+$/),
+                body("requestId")
+                    .exists()
+                    .trim()
+                    .matches(/^[0-9]+$/),
+                body("receiver").exists().trim().isEthereumAddress(),
                 body("signature")
                     .exists()
                     .trim()
@@ -164,12 +183,43 @@ export class Router {
                 );
             }
 
+            const tx: ITransaction = {
+                request: {
+                    email,
+                    address,
+                    nonce: nonce.toString(),
+                    signature,
+                },
+                status: TransactionStatus.NONE,
+                requestId: "0",
+                receiver: this._wallet.address,
+                signature: "",
+            };
+
+            const txHash = ContractUtils.getTxHash(tx);
+            tx.signature = await ContractUtils.signTx(this.getSigner(), txHash);
+            this._validations.set(txHash.toString(), { tx, status: EmailValidationStatus.NONE });
+            await this._peers.broadcast(tx);
+
             try {
                 const contractTx = await (await this.getContract())
                     .connect(this.getSigner())
                     .addRequest(emailHash, address, signature);
 
-                /// TODO 컨트랙트에 저장한 후 ReqestId를 트랜잭션에 포함하여 전송 이때 status 는 1입니다.
+                const receipt = await contractTx.wait();
+                const events = receipt.events?.filter((x) => x.event === "AddedRequestItem");
+                const requestId =
+                    events !== undefined && events.length > 0 && events[0].args !== undefined
+                        ? BigNumber.from(events[0].args[0])
+                        : BigNumber.from(0);
+
+                const validation = this._validations.get(txHash.toString());
+                if (validation !== undefined) {
+                    validation.tx.status = TransactionStatus.SAVED;
+                    validation.tx.requestId = requestId.toString();
+                    await this._peers.broadcast(validation.tx);
+                }
+
                 /// TODO 검증자들의 투표
 
                 return res.json(this.makeResponseData(200, { txHash: contractTx.hash }));
@@ -223,7 +273,7 @@ export class Router {
         };
 
         const txHash = ContractUtils.getTxHash(tx);
-        if (ContractUtils.verifyTx(tx.receiver, txHash, tx.signature)) {
+        if (!ContractUtils.verifyTx(tx.receiver, txHash, tx.signature)) {
             return res.json(
                 this.makeResponseData(401, undefined, {
                     message: "The signature value entered is not valid.",
@@ -233,11 +283,24 @@ export class Router {
 
         /// TODO tx.receiver 가 검증자 인지 체크
 
-        if (tx.status === 0) {
+        if (tx.status === TransactionStatus.NONE) {
             /// TODO 이메일인증 위한 코드 발송
-        } else if (tx.status === 1) {
-            /// 해당 txHash 에 해당하는 tx.requestId를 새로운 값으로 변경한다.
+            return res.json(this.makeResponseData(200, {}));
+        } else if (tx.status === TransactionStatus.SAVED) {
+            const validation = this._validations.get(txHash.toString());
+            if (validation !== undefined) {
+                validation.tx.status = 1;
+                validation.tx.requestId = tx.requestId;
+            }
+            /// TODO 실제에는 아래 코드를 제거해야 합니다. 이메일 검증결과에 따라 찬성투표를 합니다.
+            await this.voteAgreement(tx.requestId, Ballot.AGREEMENT);
+
+            return res.json(this.makeResponseData(200, {}));
         }
+    }
+
+    private async voteAgreement(requestId: BigNumberish, ballot: Ballot) {
+        await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId, ballot);
     }
 
     public async onWork() {

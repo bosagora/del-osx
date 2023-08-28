@@ -1,6 +1,8 @@
 import { Config } from "../src/common/Config";
+import { ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { PeerStatus } from "../src/validator/Peers";
+import { ValidatorNode } from "../src/validator/ValidatorNode";
 import { LinkCollection } from "../typechain-types";
 import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
 
@@ -12,7 +14,6 @@ import assert from "assert";
 import ip from "ip";
 import * as path from "path";
 import URI from "urijs";
-import { ValidatorNode } from "../src/validator/ValidatorNode";
 
 chai.use(solidity);
 
@@ -23,11 +24,8 @@ describe("Test of ValidatorNode", function () {
 
     const validators = [validator1, validator2, validator3];
     const users = [user1, user2, user3];
-    const emailHashes: string[] = [
-        ContractUtils.sha256String("a@example.com"),
-        ContractUtils.sha256String("b@example.com"),
-        ContractUtils.sha256String("c@example.com"),
-    ];
+    const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
+    const emailHashes: string[] = emails.map((m) => ContractUtils.sha256String(m));
     let linkCollectionContract: LinkCollection;
 
     const deployLinkCollection = async () => {
@@ -133,6 +131,30 @@ describe("Test of ValidatorNode", function () {
                 assert.deepStrictEqual(res.index.toString(), `${idx}`);
                 assert.deepStrictEqual(res.endpoint, `http://${ip.address()}:${7070 + idx}`);
             }
+        });
+
+        it("Add link data", async () => {
+            const nonce = await linkCollectionContract.nonceOf(users[0].address);
+            const signature = await ContractUtils.sign(users[0], emails[0], nonce);
+
+            const url = URI(validatorNodeURLs[0]).filename("request").toString();
+            const response = await client.post(url, {
+                email: emails[0],
+                address: users[0].address,
+                signature,
+            });
+            assert.deepStrictEqual(response.status, 200);
+            assert.deepStrictEqual(response.data.code, 200);
+            assert(response.data.data.txHash !== undefined);
+        });
+
+        it("Wait", async () => {
+            await delay(5000);
+        });
+
+        it("Check link data", async () => {
+            await expect(await linkCollectionContract.toAddress(emailHashes[0])).to.equal(users[0].address);
+            await expect(await linkCollectionContract.toEmail(users[0].address)).to.equal(emailHashes[0]);
         });
     });
 });
