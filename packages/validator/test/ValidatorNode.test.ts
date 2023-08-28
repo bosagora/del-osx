@@ -21,11 +21,8 @@ describe("Test of ValidatorNode", function () {
 
     const validators = [validator1];
     const users = [user1, user2, user3];
-    const emailHashes: string[] = [
-        ContractUtils.sha256String("a@example.com"),
-        ContractUtils.sha256String("b@example.com"),
-        ContractUtils.sha256String("c@example.com"),
-    ];
+    const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
+    const emailHashes: string[] = emails.map((m) => ContractUtils.sha256String(m));
     let linkCollectionContract: LinkCollection;
 
     const deployLinkCollection = async () => {
@@ -79,12 +76,11 @@ describe("Test of ValidatorNode", function () {
 
         it("Add link data", async () => {
             const nonce = await linkCollectionContract.nonceOf(users[0].address);
-            const hash = emailHashes[0];
-            const signature = await ContractUtils.sign(users[0], hash, nonce);
+            const signature = await ContractUtils.sign(users[0], emails[0], nonce);
 
             const url = URI(validatorNodeURL).filename("request").toString();
             const response = await client.post(url, {
-                email: hash,
+                email: emails[0],
                 address: users[0].address,
                 signature,
             });

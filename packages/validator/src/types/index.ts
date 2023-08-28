@@ -4,19 +4,15 @@ interface ValidatorNodeInfo {
     version: string;
 }
 
-interface Transaction {
-    type: number;
+interface ITransaction {
     request: {
         email: string;
         address: string;
+        nonce: string;
         signature: string;
     };
-    validators: string[];
-    signatures: [
-        {
-            validator: string;
-            signature: string;
-        }
-    ];
-    mail: string[];
+    status: number;
+    requestId: string;
+    receiver: string;
+    signature: string;
 }

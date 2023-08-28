@@ -61,7 +61,7 @@ export class Peer implements IPeer {
         }
     }
 
-    public async broadcast(data: any): Promise<void> {
+    public async broadcast(data: ITransaction): Promise<void> {
         try {
             await this.client.post("/broadcast", data);
         } catch (e) {
