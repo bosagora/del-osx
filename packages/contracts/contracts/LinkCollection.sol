@@ -57,6 +57,7 @@ contract LinkCollection {
     struct ValidatorItem {
         address validator; // 검증자의 지갑주소
         uint256 index;
+        string endpoint;
         ValidatorStatus status; // 검증자의 상태
     }
 
@@ -79,6 +80,7 @@ contract LinkCollection {
             ValidatorItem memory item = ValidatorItem({
                 validator: _validators[i],
                 index: i,
+                endpoint: "",
                 status: ValidatorStatus.ACTIVE
             });
             validatorItems.push(_validators[i]);
@@ -194,6 +196,13 @@ contract LinkCollection {
                 }
             }
         }
+    }
+
+    /// @notice 검증자 자신의 API 엔드포인트를 등록한다.
+    /// @param _endpoint API 엔드포인트
+    function updateEndpoint(string memory _endpoint) public onlyValidator {
+        require(validators[msg.sender].status != ValidatorStatus.INVALID, "No exists validator's info");
+        validators[msg.sender].endpoint = _endpoint;
     }
 
     /// @notice 이메일해시와 연결된 지갑주소를 리턴한다.

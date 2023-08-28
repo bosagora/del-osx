@@ -128,4 +128,20 @@ describe("Test for LinkCollection", () => {
             assert.strictEqual(res.status, 1);
         }
     });
+
+    it("Set endpoint", async () => {
+        for (let idx = 0; idx < validators.length; idx++) {
+            const res = await contract.getValidator(idx);
+            assert.strictEqual(res.endpoint, "");
+        }
+
+        for (let idx = 0; idx < validators.length; idx++) {
+            const res = await contract.connect(validators[idx]).updateEndpoint(`http://127.0.0.1:${idx + 7070}`);
+        }
+
+        for (let idx = 0; idx < validators.length; idx++) {
+            const res = await contract.getValidator(idx);
+            assert.strictEqual(res.endpoint, `http://127.0.0.1:${idx + 7070}`);
+        }
+    });
 });
