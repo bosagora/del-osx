@@ -10,6 +10,7 @@ import { solidity } from "ethereum-waffle";
 import * as hre from "hardhat";
 
 import { ContractUtils } from "./ContractUtils";
+import { BigNumber } from "ethers";
 
 chai.use(solidity);
 
@@ -94,5 +95,37 @@ describe("Test for LinkCollection", () => {
         const nonce = await contract.nonceOf(user3.address);
         const signature = await ContractUtils.sign(user3, hash, nonce);
         await expect(contract.connect(relay).addRequest(hash, user3.address, signature)).to.be.revertedWith("E001");
+    });
+
+    it("Validator's data", async () => {
+        const res = await contract.getValidators();
+        assert.deepStrictEqual(res.length, validators.length);
+        let idx = 0;
+        for (const item of res) {
+            assert.strictEqual(item.validator, validators[idx++].address);
+            assert.strictEqual(item.status, 1);
+        }
+    });
+
+    it("Validator's address", async () => {
+        const res = await contract.getAddressOfValidators();
+        assert.deepStrictEqual(
+            res,
+            validators.map((m) => m.address)
+        );
+    });
+
+    it("Validator length", async () => {
+        const res = await contract.getValidatorLength();
+        assert.deepStrictEqual(res, BigNumber.from(3));
+    });
+
+    it("Check Validator", async () => {
+        const length = (await contract.getValidatorLength()).toNumber();
+        for (let idx = 0; idx < length; idx++) {
+            const res = await contract.getValidator(idx);
+            assert.strictEqual(res.validator, validators[idx++].address);
+            assert.strictEqual(res.status, 1);
+        }
     });
 });
