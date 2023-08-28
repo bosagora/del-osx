@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from "axios";
+import { ITransaction, ValidatorNodeInfo } from "../types";
 
 export enum PeerStatus {
     UNKNOWN,
@@ -83,7 +84,7 @@ export class Peers {
         }
     }
     public async broadcast(data: any) {
-        for (const item of this.items.filter((m) => m.status !== PeerStatus.ACTIVE)) {
+        for (const item of this.items.filter((m) => m.status === PeerStatus.ACTIVE)) {
             await item.broadcast(data);
         }
     }

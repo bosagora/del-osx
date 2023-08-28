@@ -1,4 +1,5 @@
 import { Config } from "../src/common/Config";
+import { ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { LinkCollection } from "../typechain-types";
 import { TestClient, TestValidatorNode } from "./helper/Utility";
