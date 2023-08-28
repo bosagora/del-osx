@@ -67,6 +67,7 @@ export class Router {
 
     public registerRoutes() {
         this._validator.app.get("/info", [], this.getInfo.bind(this));
+        this._validator.app.get("/peers", [], this.getPeers.bind(this));
         this._validator.app.post(
             "/request",
             [
@@ -79,13 +80,43 @@ export class Router {
             ],
             this.postRequest.bind(this)
         );
-        this._validator.app.get("/peers", [], this.getPeers.bind(this));
+        this._validator.app.post(
+            "/broadcast",
+            [
+                body("request").exists(),
+                body("request.email").exists().trim().isEmail(),
+                body("request.address").exists().trim().isEthereumAddress(),
+                body("request.nonce").exists().trim(),
+                body("request.signature")
+                    .exists()
+                    .trim()
+                    .matches(/^(0x)[0-9a-f]{130}$/i),
+                body("status").exists().trim(),
+                body("requestId").exists().trim(),
+                body("address").exists().trim().isEthereumAddress(),
+                body("signature")
+                    .exists()
+                    .trim()
+                    .matches(/^(0x)[0-9a-f]{130}$/i),
+            ],
+            this.postBroadcast.bind(this)
+        );
     }
 
     private async getInfo(req: express.Request, res: express.Response) {
         logger.http(`GET /info`);
 
         return res.json(this.makeResponseData(200, this.nodeInfo, undefined));
+    }
+
+    private async getPeers(req: express.Request, res: express.Response) {
+        logger.http(`GET /peers`);
+
+        const data = this._peers.items.map((m) => {
+            return { nodeId: m.nodeId, endpoint: m.endpoint, version: m.version, status: m.status };
+        });
+
+        return res.json(this.makeResponseData(200, data, undefined));
     }
 
     private async postRequest(req: express.Request, res: express.Response) {
@@ -138,7 +169,7 @@ export class Router {
                     .connect(this.getSigner())
                     .addRequest(emailHash, address, signature);
 
-                /// TODO 이메일인증
+                /// TODO 컨트랙트에 저장한 후 ReqestId를 트랜잭션에 포함하여 전송 이때 status 는 1입니다.
                 /// TODO 검증자들의 투표
 
                 return res.json(this.makeResponseData(200, { txHash: contractTx.hash }));
@@ -160,14 +191,53 @@ export class Router {
         }
     }
 
-    private async getPeers(req: express.Request, res: express.Response) {
-        logger.http(`GET /peers`);
+    private async postBroadcast(req: express.Request, res: express.Response) {
+        logger.http(`POST /broadcast`);
 
-        const data = this._peers.items.map((m) => {
-            return { nodeId: m.nodeId, endpoint: m.endpoint, version: m.version, status: m.status };
-        });
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.json(
+                this.makeResponseData(400, undefined, {
+                    message: "Failed to check the validity of parameters.",
+                    validation: errors.array(),
+                })
+            );
+        }
 
-        return res.json(this.makeResponseData(200, data, undefined));
+        const email = String(req.body.request.email).trim();
+        const address = String(req.body.request.address).trim();
+        const nonce = String(req.body.request.nonce).trim();
+        const signature = String(req.body.request.signature).trim();
+
+        const tx: ITransaction = {
+            request: {
+                email,
+                address,
+                nonce,
+                signature,
+            },
+            status: Number(req.body.status),
+            requestId: String(req.body.requestId),
+            receiver: String(req.body.receiver).trim(),
+            signature: String(req.body.signature).trim(),
+        };
+
+        const txHash = ContractUtils.getTxHash(tx);
+        if (ContractUtils.verifyTx(tx.receiver, txHash, tx.signature)) {
+            return res.json(
+                this.makeResponseData(401, undefined, {
+                    message: "The signature value entered is not valid.",
+                })
+            );
+        }
+
+        /// TODO tx.receiver 가 검증자 인지 체크
+
+        if (tx.status === 0) {
+            /// TODO 이메일인증 위한 코드 발송
+        } else if (tx.status === 1) {
+            /// 해당 txHash 에 해당하는 tx.requestId를 새로운 값으로 변경한다.
+        }
     }
 
     public async onWork() {
