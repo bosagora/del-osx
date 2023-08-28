@@ -9,28 +9,25 @@ export enum PeerStatus {
 
 export interface IPeer {
     nodeId: string;
-    ip: string;
-    port: number;
+    endpoint: string;
     version: string;
     status: PeerStatus;
 }
 
 export class Peer implements IPeer {
     public nodeId: string;
-    public ip: string;
-    public port: number;
+    public endpoint: string;
     public version: string;
     public status: PeerStatus;
     private client: AxiosInstance;
 
-    constructor(nodeId: string, ip: string, port: number, version: string) {
+    constructor(nodeId: string, endpoint: string, version: string) {
         this.nodeId = nodeId;
-        this.ip = ip;
-        this.port = port;
+        this.endpoint = endpoint;
         this.version = version;
         this.status = PeerStatus.UNKNOWN;
         this.client = axios.create({
-            baseURL: `http://${this.ip}:${this.port}`,
+            baseURL: endpoint,
         });
     }
 
@@ -56,8 +53,7 @@ export class Peer implements IPeer {
         try {
             await this.client.post("/handshake", {
                 nodeId: this.nodeId,
-                ip: this.ip,
-                port: this.port,
+                endpoint: this.endpoint,
                 version: this.version,
             });
         } catch (e) {

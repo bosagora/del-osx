@@ -1,7 +1,7 @@
-server:
-  address: ${SERVER_ADDRESS}
-  port: ${SERVER_PORT}
-  external: ${SERVER_EXTERNAL_IP}
+node:
+  host: ${NODE_HOST}
+  port: ${NODE_PORT}
+  external: ${NODE_EXTERNAL_IP}
 
 logging:
   level: ${LOGGING_LEVEL}
@@ -13,9 +13,7 @@ validator:
   validator_key: ${VALIDATOR_KEY}
 
 peers:
-  - id: ${PEER2_ID}
-    ip: 127.0.0.1
-    port: 7071
-  - id: ${PEER3_ID}
-    ip: 127.0.0.1
-    port: 7072
+  - nodeId: ${PEER2_ID}
+    endpoint: http://127.0.0.1:7071
+  - nodeId: ${PEER3_ID}
+    endpoint: http://127.0.0.1:7072

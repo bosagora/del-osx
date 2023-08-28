@@ -1,7 +1,6 @@
 interface ValidatorNodeInfo {
     nodeId: string;
-    ip: string;
-    port: number;
+    endpoint: string;
     version: string;
 }
 

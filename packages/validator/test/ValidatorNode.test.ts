@@ -56,7 +56,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         before("Create Validator Client", async () => {
-            validatorNodeURL = `http://localhost:${config.server.port}`;
+            validatorNodeURL = `http://localhost:${config.node.port}`;
             validatorNode = new TestValidatorNode(config);
         });
 
@@ -74,8 +74,7 @@ describe("Test of ValidatorNode", function () {
             assert.deepStrictEqual(response.data.code, 200);
             const nodeInfo: ValidatorNodeInfo = response.data.data;
             assert.strictEqual(nodeInfo.nodeId, validator1.address);
-            assert.strictEqual(nodeInfo.ip, ip.address());
-            assert.strictEqual(nodeInfo.port, config.server.port);
+            assert.strictEqual(nodeInfo.endpoint, `${config.node.protocol}://${ip.address()}:${config.node.port}`);
         });
 
         it("Add link data", async () => {
