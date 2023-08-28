@@ -181,6 +181,7 @@ export class Router {
         this._periodNumber = Math.floor(currentTime / ValidatorNode.INTERVAL_SECONDS);
 
         if (!this._initialized) {
+            await this.updateEndpointOnContract();
             await this._peers.check();
             this._initialized = true;
         }
@@ -193,5 +194,9 @@ export class Router {
             // 검증이 완료된 요청에 대해서 투표를 시작한다. (이것은 별도로 진행해도 됩니다.)
         }
         this._oldTimeStamp = currentTime;
+    }
+
+    private async updateEndpointOnContract() {
+        await (await this.getContract()).connect(this.getSigner()).updateEndpoint(this.nodeInfo.endpoint);
     }
 }
