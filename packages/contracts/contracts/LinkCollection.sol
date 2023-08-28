@@ -56,6 +56,7 @@ contract LinkCollection {
 
     struct ValidatorItem {
         address validator; // 검증자의 지갑주소
+        uint256 index;
         ValidatorStatus status; // 검증자의 상태
     }
 
@@ -75,7 +76,11 @@ contract LinkCollection {
     /// @param _validators 검증자들
     constructor(address[] memory _validators) {
         for (uint256 i = 0; i < _validators.length; ++i) {
-            ValidatorItem memory item = ValidatorItem({ validator: _validators[i], status: ValidatorStatus.ACTIVE });
+            ValidatorItem memory item = ValidatorItem({
+                validator: _validators[i],
+                index: i,
+                status: ValidatorStatus.ACTIVE
+            });
             validatorItems.push(_validators[i]);
             validators[_validators[i]] = item;
         }
@@ -207,5 +212,37 @@ contract LinkCollection {
     /// @param _wallet 지갑주소
     function nonceOf(address _wallet) public view returns (uint256) {
         return nonce[_wallet];
+    }
+
+    /// @notice 검증자들의 정보를 리턴한다.
+    function getValidators() public view returns (ValidatorItem[] memory) {
+        uint256 len = validatorItems.length;
+        ValidatorItem[] memory items = new ValidatorItem[](len);
+        for (uint256 i = 0; i < len; i++) {
+            items[i] = validators[validatorItems[i]];
+        }
+        return items;
+    }
+
+    /// @notice 검증자들의 주소를 리턴한다.
+    function getAddressOfValidators() public view returns (address[] memory) {
+        uint256 len = validatorItems.length;
+        address[] memory items = new address[](len);
+        for (uint256 i = 0; i < len; i++) {
+            items[i] = validatorItems[i];
+        }
+        return items;
+    }
+
+    /// @notice 검증자들의 갯수를 리턴한다
+    function getValidatorLength() public view returns (uint256) {
+        return validatorItems.length;
+    }
+
+    /// @notice 검증자의 정보를 리턴한다.
+    /// @param _idx 검증자의 인덱스
+    function getValidator(uint _idx) public view returns (ValidatorItem memory) {
+        require(_idx < validatorItems.length, "Out of range");
+        return validators[validatorItems[_idx]];
     }
 }
