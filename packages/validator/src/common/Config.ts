@@ -1,13 +1,12 @@
 import { ArgumentParser } from "argparse";
 import extend from "extend";
 import fs from "fs";
-import ip from "ip";
 import path from "path";
 import { readYamlEnvSync } from "yaml-env-defaults";
 import { Utils } from "../utils/Utils";
 
 export class Config implements IConfig {
-    public server: ServerConfig;
+    public node: NodeConfig;
 
     public logging: LoggingConfig;
 
@@ -18,7 +17,7 @@ export class Config implements IConfig {
     public peers: PeerConfig;
 
     constructor() {
-        this.server = new ServerConfig();
+        this.node = new NodeConfig();
         this.logging = new LoggingConfig();
         this.validator = new ValidatorConfig();
         this.contracts = new ContractsConfig();
@@ -58,7 +57,7 @@ export class Config implements IConfig {
         const cfg = readYamlEnvSync([path.resolve(Utils.getInitCWD(), config_file)], (key) => {
             return (process.env || {})[key];
         }) as IConfig;
-        this.server.readFromObject(cfg.server);
+        this.node.readFromObject(cfg.node);
         this.logging.readFromObject(cfg.logging);
         this.validator.readFromObject(cfg.validator);
         this.contracts.readFromObject(cfg.contracts);
@@ -66,41 +65,36 @@ export class Config implements IConfig {
     }
 }
 
-export class ServerConfig implements IServerConfig {
-    public address: string;
+export class NodeConfig implements IServerConfig {
+    public protocol: string;
+    public host: string;
     public port: number;
     public external: string;
-    constructor(address?: string, port?: number) {
-        const conf = extend(true, {}, ServerConfig.defaultValue());
-        extend(true, conf, { address, port });
+    constructor(host?: string, port?: number) {
+        const conf = extend(true, {}, NodeConfig.defaultValue());
+        extend(true, conf, { host, port });
 
-        if (!ip.isV4Format(conf.address) && !ip.isV6Format(conf.address)) {
-            console.error(`${conf.address}' is not appropriate to use as an IP address.`);
-            process.exit(1);
-        }
-
-        this.address = conf.address;
+        this.protocol = conf.protocol;
+        this.host = conf.host;
         this.port = conf.port;
         this.external = conf.external;
     }
 
     public static defaultValue(): IServerConfig {
         return {
-            address: "127.0.0.1",
+            protocol: "http",
+            host: "127.0.0.1",
             port: 3000,
             external: "",
         };
     }
 
     public readFromObject(config: IServerConfig) {
-        const conf = extend(true, {}, ServerConfig.defaultValue());
+        const conf = extend(true, {}, NodeConfig.defaultValue());
         extend(true, conf, config);
 
-        if (!ip.isV4Format(conf.address) && !ip.isV6Format(conf.address)) {
-            console.error(`${conf.address}' is not appropriate to use as an IP address.`);
-            process.exit(1);
-        }
-        this.address = conf.address;
+        this.protocol = conf.protocol;
+        this.host = conf.host;
         this.port = conf.port;
         this.external = conf.external;
     }
@@ -185,13 +179,14 @@ export class PeerConfig implements IPeerConfig {
         if (config.items !== undefined) this.items = config.items;
     }
 
-    public getPeer(id: string): IPeerItemConfig | undefined {
-        return this.items.find((m) => m.id === id);
+    public getPeer(nodeId: string): IPeerItemConfig | undefined {
+        return this.items.find((m) => m.nodeId === nodeId);
     }
 }
 
 export interface IServerConfig {
-    address: string;
+    protocol: string;
+    host: string;
     port: number;
     external: string;
 }
@@ -209,9 +204,8 @@ export interface IContractsConfig {
 }
 
 export interface IPeerItemConfig {
-    id: string;
-    ip: string;
-    port: number;
+    nodeId: string;
+    endpoint: string;
 }
 
 export interface IPeerConfig {
@@ -220,7 +214,7 @@ export interface IPeerConfig {
 }
 
 export interface IConfig {
-    server: IServerConfig;
+    node: IServerConfig;
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;

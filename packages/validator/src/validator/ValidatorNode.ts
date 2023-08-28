@@ -25,7 +25,7 @@ export class ValidatorNode {
         this._peers = new Peers();
         this._router = new Router(this, this._config, this._peers);
         this._worker = new Worker("*/1 * * * * *", this, this._router);
-        for (const elem of this._config.peers.items) this._peers.items.push(new Peer(elem.id, elem.ip, elem.port, ""));
+        for (const elem of this._config.peers.items) this._peers.items.push(new Peer(elem.nodeId, elem.endpoint, ""));
     }
 
     public async start(): Promise<void> {
@@ -43,10 +43,10 @@ export class ValidatorNode {
         this._router.registerRoutes();
 
         return new Promise<void>((resolve, reject) => {
-            this._app.set("port", this._config.server.port);
+            this._app.set("port", this._config.node.port);
             this._server = http.createServer(this._app);
             this._server.on("error", reject);
-            this._server.listen(this._config.server.port, this._config.server.address, async () => {
+            this._server.listen(this._config.node.port, this._config.node.host, async () => {
                 await this._worker.start();
                 resolve();
             });

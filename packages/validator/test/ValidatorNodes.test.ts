@@ -56,15 +56,15 @@ describe("Test of ValidatorNode", function () {
                 config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
                 config.contracts.linkCollectionAddress = linkCollectionContract.address;
                 config.validator.validator_key = validators[idx].privateKey;
-                config.server.address = "0.0.0.0";
-                config.server.port = 7070 + idx;
+                config.node.protocol = "http";
+                config.node.host = "0.0.0.0";
+                config.node.port = 7070 + idx;
 
                 for (let peerIdx = 0; peerIdx < maxValidatorCount; peerIdx++) {
                     if (idx === peerIdx) continue;
                     config.peers.items.push({
-                        id: validators[peerIdx].address,
-                        ip: ip.address(),
-                        port: 7070 + peerIdx,
+                        nodeId: validators[peerIdx].address,
+                        endpoint: `http://${ip.address()}:${7070 + peerIdx}`,
                     });
                 }
                 configs.push(config);
@@ -73,7 +73,7 @@ describe("Test of ValidatorNode", function () {
 
         before("Create Validator Nodes", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
-                validatorNodeURLs.push(`http://localhost:${configs[idx].server.port}`);
+                validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
                 validatorNodes.push(new TestValidatorNode(configs[idx]));
             }
         });
@@ -97,8 +97,7 @@ describe("Test of ValidatorNode", function () {
                 assert.deepStrictEqual(response.data.code, 200);
                 const nodeInfo: ValidatorNodeInfo = response.data.data;
                 assert.strictEqual(nodeInfo.nodeId, validators[idx].address);
-                assert.strictEqual(nodeInfo.ip, ip.address());
-                assert.strictEqual(nodeInfo.port, configs[idx].server.port);
+                assert.strictEqual(nodeInfo.endpoint, `http://${ip.address()}:${configs[idx].node.port}`);
             }
         });
 
@@ -112,16 +111,14 @@ describe("Test of ValidatorNode", function () {
                 const response = await client.get(url);
                 const expected = [
                     {
-                        nodeId: configs[idx].peers.items[0].id,
-                        ip: configs[idx].peers.items[0].ip,
-                        port: configs[idx].peers.items[0].port,
+                        nodeId: configs[idx].peers.items[0].nodeId,
+                        endpoint: configs[idx].peers.items[0].endpoint,
                         version: "v1.0.0",
                         status: PeerStatus.ACTIVE,
                     },
                     {
-                        nodeId: configs[idx].peers.items[1].id,
-                        ip: configs[idx].peers.items[1].ip,
-                        port: configs[idx].peers.items[1].port,
+                        nodeId: configs[idx].peers.items[1].nodeId,
+                        endpoint: configs[idx].peers.items[1].endpoint,
                         version: "v1.0.0",
                         status: PeerStatus.ACTIVE,
                     },

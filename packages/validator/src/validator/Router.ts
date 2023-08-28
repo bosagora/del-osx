@@ -36,10 +36,10 @@ export class Router {
         this._peers = peers;
         this._wallet = new Wallet(this._config.validator.validator_key);
 
+        const host = this._config.node.external !== "" ? this._config.node.external : ip.address();
         this.nodeInfo = {
             nodeId: this._wallet.address,
-            ip: this._config.server.external !== "" ? this._config.server.external : ip.address(),
-            port: this._config.server.port,
+            endpoint: `${this._config.node.protocol}://${host}:${this._config.node.port}`,
             version: "v1.0.0",
         };
         this._startTimeStamp = ContractUtils.getTimeStamp();
@@ -165,7 +165,7 @@ export class Router {
         logger.http(`GET /peers`);
 
         const data = this._peers.items.map((m) => {
-            return { nodeId: m.nodeId, ip: m.ip, port: m.port, version: m.version, status: m.status };
+            return { nodeId: m.nodeId, endpoint: m.endpoint, version: m.version, status: m.status };
         });
 
         return res.json(this.makeResponseData(200, data, undefined));
