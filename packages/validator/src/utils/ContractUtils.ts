@@ -64,4 +64,14 @@ export class ContractUtils {
     public static async signTx(signer: Signer, txHash: Uint8Array): Promise<string> {
         return signer.signMessage(txHash);
     }
+
+    public static verifyTx(address: string, txHash: Uint8Array, signature: string): boolean {
+        let res: string;
+        try {
+            res = hre.ethers.utils.verifyMessage(txHash, signature);
+        } catch (error) {
+            return false;
+        }
+        return res.toLowerCase() === address.toLowerCase();
+    }
 }
