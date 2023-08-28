@@ -57,15 +57,11 @@ describe("Test of ValidatorNode", function () {
                 config.node.protocol = "http";
                 config.node.host = "0.0.0.0";
                 config.node.port = 7070 + idx;
-
-                for (let peerIdx = 0; peerIdx < maxValidatorCount; peerIdx++) {
-                    if (idx === peerIdx) continue;
-                    config.peers.items.push({
-                        nodeId: validators[peerIdx].address,
-                        endpoint: `http://${ip.address()}:${7070 + peerIdx}`,
-                    });
-                }
                 configs.push(config);
+
+                await linkCollectionContract
+                    .connect(validators[idx])
+                    .updateEndpoint(`http://${ip.address()}:${7070 + idx}`);
             }
         });
 
@@ -94,7 +90,7 @@ describe("Test of ValidatorNode", function () {
                 const response = await client.get(url);
                 assert.deepStrictEqual(response.data.code, 200);
                 const nodeInfo: ValidatorNodeInfo = response.data.data;
-                assert.strictEqual(nodeInfo.nodeId, validators[idx].address);
+                assert.strictEqual(nodeInfo.nodeId, validators[idx].address.toLowerCase());
                 assert.strictEqual(nodeInfo.endpoint, `http://${ip.address()}:${configs[idx].node.port}`);
             }
         });
@@ -105,18 +101,26 @@ describe("Test of ValidatorNode", function () {
 
         it("Get Validator Node Peers", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
+                const peers = [];
+                for (let peerIdx = 0; peerIdx < maxValidatorCount; peerIdx++) {
+                    if (idx === peerIdx) continue;
+                    peers.push({
+                        nodeId: validators[peerIdx].address.toLowerCase(),
+                        endpoint: `http://${ip.address()}:${7070 + peerIdx}`,
+                    });
+                }
                 const url = URI(validatorNodeURLs[idx]).filename("peers").toString();
                 const response = await client.get(url);
                 const expected = [
                     {
-                        nodeId: configs[idx].peers.items[0].nodeId,
-                        endpoint: configs[idx].peers.items[0].endpoint,
+                        nodeId: peers[0].nodeId,
+                        endpoint: peers[0].endpoint,
                         version: "v1.0.0",
                         status: PeerStatus.ACTIVE,
                     },
                     {
-                        nodeId: configs[idx].peers.items[1].nodeId,
-                        endpoint: configs[idx].peers.items[1].endpoint,
+                        nodeId: peers[1].nodeId,
+                        endpoint: peers[1].endpoint,
                         version: "v1.0.0",
                         status: PeerStatus.ACTIVE,
                     },
@@ -146,10 +150,6 @@ describe("Test of ValidatorNode", function () {
             assert.deepStrictEqual(response.status, 200);
             assert.deepStrictEqual(response.data.code, 200);
             assert(response.data.data.txHash !== undefined);
-        });
-
-        it("Wait", async () => {
-            await delay(5000);
         });
 
         it("Check link data", async () => {
