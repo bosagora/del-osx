@@ -11,9 +11,3 @@ contracts:
 
 validator:
   validator_key: ${VALIDATOR_KEY}
-
-peers:
-  - nodeId: ${PEER2_ID}
-    endpoint: http://127.0.0.1:7071
-  - nodeId: ${PEER3_ID}
-    endpoint: http://127.0.0.1:7072

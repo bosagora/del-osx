@@ -11,7 +11,7 @@ import {
     ValidatorNodeInfo,
 } from "../types";
 import { ContractUtils } from "../utils/ContractUtils";
-import { Peers } from "./Peers";
+import { Peer, Peers } from "./Peers";
 import { ValidatorNode } from "./ValidatorNode";
 
 import { NonceManager } from "@ethersproject/experimental";
@@ -38,6 +38,7 @@ export class Router {
     private _oldTimeStamp: number = 0;
     private _periodNumber: number = 0;
 
+    private _validators: Map<string, string> = new Map<string, string>();
     private _validations: Map<string, IEmailValidation> = new Map<string, IEmailValidation>();
 
     constructor(validator: ValidatorNode, config: Config, peers: Peers) {
@@ -48,7 +49,7 @@ export class Router {
 
         const host = this._config.node.external !== "" ? this._config.node.external : ip.address();
         this.nodeInfo = {
-            nodeId: this._wallet.address,
+            nodeId: this._wallet.address.toLowerCase(),
             endpoint: `${this._config.node.protocol}://${host}:${this._config.node.port}`,
             version: "v1.0.0",
         };
@@ -73,6 +74,18 @@ export class Router {
             data,
             error,
         };
+    }
+
+    public async makePeers() {
+        const res = await (await this.getContract()).getValidators();
+        this._validators.clear();
+        this._peers.items.length = 0;
+        for (const item of res) {
+            const validator = item.validator.toLowerCase();
+            this._validators.set(validator, item.endpoint);
+            if (this._wallet.address.toLowerCase() === validator) continue;
+            this._peers.items.push(new Peer(validator, item.endpoint, ""));
+        }
     }
 
     public registerRoutes() {
@@ -198,7 +211,7 @@ export class Router {
 
             const txHash = ContractUtils.getTxHash(tx);
             tx.signature = await ContractUtils.signTx(this.getSigner(), txHash);
-            this._validations.set(txHash.toString(), { tx, status: EmailValidationStatus.NONE });
+            this._validations.set(txHash.toString().toLowerCase(), { tx, status: EmailValidationStatus.NONE });
             await this._peers.broadcast(tx);
 
             try {
@@ -213,7 +226,7 @@ export class Router {
                         ? BigNumber.from(events[0].args[0])
                         : BigNumber.from(0);
 
-                const validation = this._validations.get(txHash.toString());
+                const validation = this._validations.get(txHash.toString().toLowerCase());
                 if (validation !== undefined) {
                     validation.tx.status = TransactionStatus.SAVED;
                     validation.tx.requestId = requestId.toString();
@@ -281,13 +294,19 @@ export class Router {
             );
         }
 
-        /// TODO tx.receiver 가 검증자 인지 체크
+        if (this._validators.get(tx.receiver.toLowerCase()) === undefined) {
+            return res.json(
+                this.makeResponseData(402, undefined, {
+                    message: "Receiver is not validator.",
+                })
+            );
+        }
 
         if (tx.status === TransactionStatus.NONE) {
             /// TODO 이메일인증 위한 코드 발송
             return res.json(this.makeResponseData(200, {}));
         } else if (tx.status === TransactionStatus.SAVED) {
-            const validation = this._validations.get(txHash.toString());
+            const validation = this._validations.get(txHash.toString().toLowerCase());
             if (validation !== undefined) {
                 validation.tx.status = 1;
                 validation.tx.requestId = tx.requestId;
@@ -314,6 +333,7 @@ export class Router {
 
         if (!this._initialized) {
             await this.updateEndpointOnContract();
+            await this.makePeers();
             await this._peers.check();
             this._initialized = true;
         }
@@ -321,6 +341,7 @@ export class Router {
         const old_period = Math.floor(this._oldTimeStamp / ValidatorNode.INTERVAL_SECONDS);
         if (old_period !== this._periodNumber) {
             await this._peers.check();
+            await this.makePeers();
             // 요청을 처리한다.
             // 진행이 되지 않는 요청을 해결한다.
             // 검증이 완료된 요청에 대해서 투표를 시작한다. (이것은 별도로 진행해도 됩니다.)

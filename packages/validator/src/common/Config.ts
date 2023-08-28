@@ -14,14 +14,11 @@ export class Config implements IConfig {
 
     public contracts: ContractsConfig;
 
-    public peers: PeerConfig;
-
     constructor() {
         this.node = new NodeConfig();
         this.logging = new LoggingConfig();
         this.validator = new ValidatorConfig();
         this.contracts = new ContractsConfig();
-        this.peers = new PeerConfig();
     }
 
     public static createWithArgument(): Config {
@@ -61,7 +58,6 @@ export class Config implements IConfig {
         this.logging.readFromObject(cfg.logging);
         this.validator.readFromObject(cfg.validator);
         this.contracts.readFromObject(cfg.contracts);
-        this.peers.readFromObject(cfg.peers);
     }
 }
 
@@ -158,32 +154,6 @@ export class LoggingConfig implements ILoggingConfig {
     }
 }
 
-export class PeerConfig implements IPeerConfig {
-    public items: IPeerItemConfig[];
-
-    constructor() {
-        const defaults = PeerConfig.defaultValue();
-        this.items = defaults.items;
-    }
-
-    public static defaultValue(): IPeerConfig {
-        return {
-            items: [],
-        } as unknown as IPeerConfig;
-    }
-
-    public readFromObject(config: IPeerConfig) {
-        this.items = [];
-        if (config === null) return;
-        if (config === undefined) return;
-        if (config.items !== undefined) this.items = config.items;
-    }
-
-    public getPeer(nodeId: string): IPeerItemConfig | undefined {
-        return this.items.find((m) => m.nodeId === nodeId);
-    }
-}
-
 export interface IServerConfig {
     protocol: string;
     host: string;
@@ -203,20 +173,9 @@ export interface IContractsConfig {
     linkCollectionAddress: string;
 }
 
-export interface IPeerItemConfig {
-    nodeId: string;
-    endpoint: string;
-}
-
-export interface IPeerConfig {
-    items: IPeerItemConfig[];
-    getPeer(id: string): IPeerItemConfig | undefined;
-}
-
 export interface IConfig {
     node: IServerConfig;
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;
-    peers: IPeerConfig;
 }

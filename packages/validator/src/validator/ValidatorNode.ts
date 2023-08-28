@@ -25,7 +25,6 @@ export class ValidatorNode {
         this._peers = new Peers();
         this._router = new Router(this, this._config, this._peers);
         this._worker = new Worker("*/1 * * * * *", this, this._router);
-        for (const elem of this._config.peers.items) this._peers.items.push(new Peer(elem.nodeId, elem.endpoint, ""));
     }
 
     public async start(): Promise<void> {
