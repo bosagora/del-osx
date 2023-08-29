@@ -24,11 +24,11 @@ dataSources:
         - name: LinkCollection
           file:  $DMS_OSX_MODULE/artifacts/contracts/LinkCollection.sol/LinkCollection.json
       eventHandlers:
-        - event: AcceptedRequestItem(uint256,bytes32,address)
+        - event: AcceptedRequestItem(bytes32,bytes32,address)
           handler: handleAcceptedRequestItem
-        - event: AddedRequestItem(uint256,bytes32,address)
+        - event: AddedRequestItem(bytes32,bytes32,address)
           handler: handleAddedRequestItem
-        - event: RejectedRequestItem(uint256,bytes32,address)
+        - event: RejectedRequestItem(bytes32,bytes32,address)
           handler: handleRejectedRequestItem
         - event: UpdatedLinkItem(bytes32,address,address)
           handler: handleUpdatedLinkItem

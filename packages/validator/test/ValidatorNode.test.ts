@@ -41,7 +41,6 @@ describe("Test of ValidatorNode", function () {
     let config: Config;
 
     context("Test ValidatorNode", () => {
-        let reqId = 0;
         before("Deploy", async () => {
             await deployLinkCollection();
         });
@@ -77,7 +76,7 @@ describe("Test of ValidatorNode", function () {
 
         it("Add link data", async () => {
             const nonce = await linkCollectionContract.nonceOf(users[0].address);
-            const signature = await ContractUtils.sign(users[0], emails[0], nonce);
+            const signature = await ContractUtils.signRequestData(users[0], emails[0], nonce);
 
             const url = URI(validatorNodeURL).filename("request").toString();
             const response = await client.post(url, {
@@ -87,9 +86,8 @@ describe("Test of ValidatorNode", function () {
             });
             assert.deepStrictEqual(response.status, 200);
             assert.deepStrictEqual(response.data.code, 200);
-            assert(response.data.data.txHash !== undefined);
-            await linkCollectionContract.connect(validator1).voteRequest(reqId, 1);
-            reqId++;
+            assert(response.data.data.requestId !== undefined);
+            await linkCollectionContract.connect(validator1).voteRequest(response.data.data.requestId, 1);
         });
 
         it("Check link data", async () => {

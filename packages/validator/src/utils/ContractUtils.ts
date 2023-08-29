@@ -31,6 +31,14 @@ export class ContractUtils {
         return Math.floor(new Date().getTime() / 1000);
     }
 
+    public static getRequestId(emailHash: string, address: string, nonce: BigNumberish): string {
+        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "address", "uint256", "bytes32"],
+            [emailHash, address, nonce, crypto.randomBytes(32)]
+        );
+        return hre.ethers.utils.keccak256(encodedResult);
+    }
+
     public static getRequestHash(email: string, address: string, nonce: BigNumberish): Uint8Array {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "address", "uint256"],
@@ -39,12 +47,12 @@ export class ContractUtils {
         return arrayify(hre.ethers.utils.keccak256(encodedResult));
     }
 
-    public static async sign(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
+    public static async signRequestData(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestHash(email, await signer.getAddress(), nonce);
         return signer.signMessage(message);
     }
 
-    public static verify(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
+    public static verifyRequestData(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
         const message = ContractUtils.getRequestHash(email, address, nonce);
         let res: string;
         try {
@@ -57,20 +65,28 @@ export class ContractUtils {
 
     public static getTxHash(tx: ITransaction): Uint8Array {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "address", "uint256", "address"],
-            [ContractUtils.sha256String(tx.request.email), tx.request.address, tx.request.nonce, tx.receiver]
+            ["bytes32", "address", "uint256", "bytes32", "address"],
+            [
+                ContractUtils.sha256String(tx.request.email),
+                tx.request.address,
+                tx.request.nonce,
+                tx.requestId,
+                tx.receiver,
+            ]
         );
         return arrayify(hre.ethers.utils.keccak256(encodedResult));
     }
 
-    public static async signTx(signer: Signer, txHash: Uint8Array): Promise<string> {
-        return signer.signMessage(txHash);
+    public static async signTx(signer: Signer, tx: ITransaction): Promise<string> {
+        const message = ContractUtils.getTxHash(tx);
+        return signer.signMessage(message);
     }
 
-    public static verifyTx(address: string, txHash: Uint8Array, signature: string): boolean {
+    public static verifyTx(address: string, tx: ITransaction, signature: string): boolean {
+        const message = ContractUtils.getTxHash(tx);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(txHash, signature);
+            res = hre.ethers.utils.verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
@@ -80,7 +96,7 @@ export class ContractUtils {
     public static getSubmitHash(data: ISubmitData): Uint8Array {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "string", "address"],
-            [data.txHash, data.code, data.receiver]
+            [data.requestId, data.code, data.receiver]
         );
         return arrayify(hre.ethers.utils.keccak256(encodedResult));
     }

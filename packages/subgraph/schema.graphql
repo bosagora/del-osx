@@ -6,7 +6,7 @@ enum RequestStatus {
 }
 
 type RequestItems @entity {
-  id: ID! # id
+  id: Bytes! # id
   email: Bytes! # bytes32
   wallet: Bytes! # address
   status: RequestStatus!
@@ -16,7 +16,7 @@ type RequestItems @entity {
 }
 
 type LinkItems @entity {
-  id: ID! # email
+  id: Bytes! # email
   wallet: Bytes! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!

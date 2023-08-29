@@ -1,4 +1,5 @@
 import { LinkCollection } from "../typechain-types";
+import { ContractUtils } from "../src/utils/ContractUtils";
 
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
@@ -9,7 +10,6 @@ import { solidity } from "ethereum-waffle";
 
 import * as hre from "hardhat";
 
-import { ContractUtils } from "./ContractUtils";
 import { BigNumber } from "ethers";
 
 chai.use(solidity);
@@ -20,7 +20,7 @@ describe("Test for LinkCollection", () => {
 
     const validators = [validator1, validator2, validator3];
     let contract: LinkCollection;
-    let expectedId: number;
+    let requestId: string;
 
     before(async () => {
         const factory = await hre.ethers.getContractFactory("LinkCollection");
@@ -35,20 +35,20 @@ describe("Test for LinkCollection", () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
-        expectedId = 0;
-        await expect(contract.connect(relay).addRequest(hash, user1.address, signature))
+        requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
+        await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature))
             .to.emit(contract, "AddedRequestItem")
-            .withArgs(expectedId, hash, user1.address);
+            .withArgs(requestId, hash, user1.address);
         assert.deepStrictEqual((await contract.nonceOf(user1.address)).toString(), "1");
     });
 
     it("Vote of request item", async () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
-        await contract.connect(validator1).voteRequest(expectedId, 1);
-        await expect(contract.connect(validator2).voteRequest(expectedId, 1))
+        await contract.connect(validator1).voteRequest(requestId, 1);
+        await expect(contract.connect(validator2).voteRequest(requestId, 1))
             .to.emit(contract, "AcceptedRequestItem")
-            .withArgs(expectedId, hash, user1.address);
+            .withArgs(requestId, hash, user1.address);
 
         assert.deepStrictEqual(await contract.toAddress(hash), user1.address);
         assert.deepStrictEqual(await contract.toEmail(user1.address), hash);
@@ -59,9 +59,10 @@ describe("Test for LinkCollection", () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user2, hash, nonce);
-        await expect(contract.connect(validators[1]).addRequest(hash, user2.address, signature)).to.be.revertedWith(
-            "E001"
-        );
+        requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
+        await expect(
+            contract.connect(validators[1]).addRequest(requestId, hash, user2.address, signature)
+        ).to.be.revertedWith("E001");
     });
 
     it("Add an item with the same address", async () => {
@@ -69,7 +70,10 @@ describe("Test for LinkCollection", () => {
         const email = "def@example.com";
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
-        await expect(contract.connect(relay).addRequest(hash, user1.address, signature)).to.be.revertedWith("E002");
+        requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
+        await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
+            "E002"
+        );
     });
 
     it("Update an item", async () => {
@@ -94,7 +98,10 @@ describe("Test for LinkCollection", () => {
         expect(hash).to.equal("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         const nonce = await contract.nonceOf(user3.address);
         const signature = await ContractUtils.sign(user3, hash, nonce);
-        await expect(contract.connect(relay).addRequest(hash, user3.address, signature)).to.be.revertedWith("E001");
+        requestId = ContractUtils.getRequestId(hash, user3.address, nonce);
+        await expect(contract.connect(relay).addRequest(requestId, hash, user3.address, signature)).to.be.revertedWith(
+            "E001"
+        );
     });
 
     it("Validator's data", async () => {
