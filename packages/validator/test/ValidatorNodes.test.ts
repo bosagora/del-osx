@@ -155,7 +155,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Wait", async () => {
-            await delay(2000);
+            await delay(1000);
         });
 
         it("Submit", async () => {
@@ -165,7 +165,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Wait", async () => {
-            await delay(2000);
+            await delay(1000);
         });
 
         it("Check link data", async () => {

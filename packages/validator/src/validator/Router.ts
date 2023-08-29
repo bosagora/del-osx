@@ -93,27 +93,49 @@ export class Router {
 
     public async makePeers() {
         const res = await (await this.getContract()).getValidators();
-        const newValidators: Map<string, string> = new Map<string, string>();
-        const newPeers: Peers = new Peers();
 
+        // 신규 검증자 맵에 추가
         for (const item of res) {
-            const validator = item.validator.toLowerCase();
-            newValidators.set(validator, item.endpoint);
-            if (this._wallet.address.toLowerCase() === validator) {
-                this._validatorIndex = item.index.toNumber();
-            } else {
-                const oldPeer = this._peers.items.find((m) => m.nodeId === item.validator);
-                const newPeer = new Peer(validator, item.index.toNumber(), item.endpoint, "");
-                if (oldPeer !== undefined) {
-                    newPeer.status = oldPeer.status;
-                    newPeer.version = oldPeer.version;
-                }
-                newPeers.items.push(newPeer);
+            this._validators.set(item.validator.toLowerCase(), item.endpoint);
+        }
+
+        // 없어진 검증자를 맵에서 제거
+        for (const key of this._validators.keys()) {
+            if (res.find((m) => m.validator.toLowerCase() === key) === undefined) {
+                this._validators.delete(key);
             }
         }
 
-        this._validators = newValidators;
-        this._peers = newPeers;
+        // 새로 추가된 검증자 맵에 추가
+        for (const item of res) {
+            const nodeId = item.validator.toLowerCase();
+            const index = item.index.toNumber();
+            const endpoint = item.endpoint;
+            if (this._wallet.address.toLowerCase() === nodeId) {
+                this._validatorIndex = index;
+            } else {
+                const oldPeer = this._peers.items.find((m) => m.nodeId === nodeId);
+                if (oldPeer !== undefined) {
+                    oldPeer.endpoint = endpoint;
+                    oldPeer.index = index;
+                } else {
+                    this._peers.items.push(new Peer(nodeId, index, endpoint, ""));
+                }
+            }
+        }
+
+        // 없어진 Peer 를 찾아서 맵에서 제거한다
+        let done = false;
+        while (!done) {
+            done = true;
+            for (let idx = 0; idx < this._peers.items.length; idx++) {
+                if (res.find((m) => m.validator.toLowerCase() === this._peers.items[idx].nodeId) === undefined) {
+                    this._peers.items.splice(idx, 1);
+                    done = false;
+                    break;
+                }
+            }
+        }
     }
 
     public registerRoutes() {
@@ -495,7 +517,7 @@ export class Router {
         const old_period = Math.floor(this._oldTimeStamp / ValidatorNode.INTERVAL_SECONDS);
         if (old_period !== this._periodNumber) {
             await this._peers.check();
-            /// await this.makePeers();
+            await this.makePeers();
             /// TODO 진행이 되지 않는 요청건이 있는지 검사한다
         }
         this._oldTimeStamp = currentTime;
