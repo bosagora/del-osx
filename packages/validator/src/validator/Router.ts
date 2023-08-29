@@ -292,6 +292,7 @@ export class Router {
                 status: EmailValidationStatus.NONE,
                 sendCode: "",
                 receiveCode: "",
+                expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
             });
             await this._peers.broadcast(tx);
             const sendCode = this._codeGenerator.getCode();
@@ -346,48 +347,58 @@ export class Router {
             );
         }
 
-        const email = String(req.body.request.email).trim();
-        const address = String(req.body.request.address).trim();
-        const nonce = String(req.body.request.nonce).trim();
-        const signature = String(req.body.request.signature).trim();
+        try {
+            const email = String(req.body.request.email).trim();
+            const address = String(req.body.request.address).trim();
+            const nonce = String(req.body.request.nonce).trim();
+            const signature = String(req.body.request.signature).trim();
 
-        const tx: ITransaction = {
-            request: {
-                email,
-                address,
-                nonce,
-                signature,
-            },
-            requestId: String(req.body.requestId).trim(),
-            receiver: String(req.body.receiver).trim(),
-            signature: String(req.body.signature).trim(),
-        };
+            const tx: ITransaction = {
+                request: {
+                    email,
+                    address,
+                    nonce,
+                    signature,
+                },
+                requestId: String(req.body.requestId).trim(),
+                receiver: String(req.body.receiver).trim(),
+                signature: String(req.body.signature).trim(),
+            };
 
-        if (!ContractUtils.verifyTx(tx.receiver, tx, tx.signature)) {
+            if (!ContractUtils.verifyTx(tx.receiver, tx, tx.signature)) {
+                return res.json(
+                    this.makeResponseData(401, undefined, {
+                        message: "The signature value entered is not valid.",
+                    })
+                );
+            }
+
+            if (this._validators.get(tx.receiver.toLowerCase()) === undefined) {
+                return res.json(
+                    this.makeResponseData(402, undefined, {
+                        message: "Receiver is not validator.",
+                    })
+                );
+            }
+
+            const sendCode = this._codeGenerator.getCode();
+            await this._emailSender.send(this._validatorIndex, sendCode);
+            this._validations.set(tx.requestId, {
+                tx,
+                status: EmailValidationStatus.SENT,
+                sendCode,
+                receiveCode: "",
+                expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+            });
+            return res.json(this.makeResponseData(200, {}));
+        } catch (error: any) {
+            const message = error.message !== undefined ? error.message : "Failed broadcast request";
             return res.json(
-                this.makeResponseData(401, undefined, {
-                    message: "The signature value entered is not valid.",
+                this.makeResponseData(500, undefined, {
+                    message,
                 })
             );
         }
-
-        if (this._validators.get(tx.receiver.toLowerCase()) === undefined) {
-            return res.json(
-                this.makeResponseData(402, undefined, {
-                    message: "Receiver is not validator.",
-                })
-            );
-        }
-
-        const sendCode = this._codeGenerator.getCode();
-        await this._emailSender.send(this._validatorIndex, sendCode);
-        this._validations.set(tx.requestId, {
-            tx,
-            status: EmailValidationStatus.SENT,
-            sendCode,
-            receiveCode: "",
-        });
-        return res.json(this.makeResponseData(200, {}));
     }
 
     private async postSubmit(req: express.Request, res: express.Response) {
@@ -403,37 +414,65 @@ export class Router {
             );
         }
 
-        const requestId = String(req.body.requestId).trim();
-        const code = String(req.body.code).trim();
-        const submitData: ISubmitData = {
-            requestId,
-            code,
-            receiver: this._wallet.address,
-            signature: "",
-        };
-        submitData.signature = await ContractUtils.signSubmit(this.getSigner(), submitData);
+        try {
+            const requestId = String(req.body.requestId).trim();
+            const code = String(req.body.code).trim();
+            const submitData: ISubmitData = {
+                requestId,
+                code,
+                receiver: this._wallet.address,
+                signature: "",
+            };
+            submitData.signature = await ContractUtils.signSubmit(this.getSigner(), submitData);
 
-        const validation = this._validations.get(requestId);
-        if (validation !== undefined) {
-            if (validation.status === EmailValidationStatus.SENT) {
-                validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
-                if (validation.sendCode === validation.receiveCode) {
-                    await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
-                    validation.status = EmailValidationStatus.CONFIRMED;
+            const validation = this._validations.get(requestId);
+            if (validation !== undefined) {
+                if (validation.status === EmailValidationStatus.SENT) {
+                    if (validation.expirationTimestamp > ContractUtils.getTimeStamp()) {
+                        validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
+                        if (validation.sendCode === validation.receiveCode) {
+                            await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
+                            validation.status = EmailValidationStatus.CONFIRMED;
+                            await this._peers.broadcastSubmit(submitData);
+                            return res.json(this.makeResponseData(200, "OK"));
+                        } else {
+                            await this._peers.broadcastSubmit(submitData);
+                            return res.json(
+                                this.makeResponseData(440, null, { message: "The authentication code is different." })
+                            );
+                        }
+                    } else {
+                        validation.status = EmailValidationStatus.EXPIRED;
+                        await this._peers.broadcastSubmit(submitData);
+                        return res.json(
+                            this.makeResponseData(430, null, { message: "The authentication code is expired." })
+                        );
+                    }
+                } else if (validation.status === EmailValidationStatus.NONE) {
                     await this._peers.broadcastSubmit(submitData);
-                    return res.json(this.makeResponseData(200, "OK"));
-                } else {
+                    return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
+                } else if (validation.status === EmailValidationStatus.CONFIRMED) {
                     await this._peers.broadcastSubmit(submitData);
                     return res.json(
-                        this.makeResponseData(401, null, { message: "The authentication code is different." })
+                        this.makeResponseData(421, null, { message: "Processing has already been completed." })
+                    );
+                } else if (validation.status === EmailValidationStatus.EXPIRED) {
+                    await this._peers.broadcastSubmit(submitData);
+                    return res.json(
+                        this.makeResponseData(422, null, { message: "The authentication code is expired." })
                     );
                 }
             } else {
                 await this._peers.broadcastSubmit(submitData);
+                return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
             }
-        } else {
-            await this._peers.broadcastSubmit(submitData);
-            return res.json(this.makeResponseData(400, null, { message: "No such request found." }));
+        } catch (error: any) {
+            const message = error.message !== undefined ? error.message : "Failed submit";
+            return res.json(
+                this.makeResponseData(500, undefined, {
+                    message,
+                })
+            );
         }
     }
 
@@ -450,47 +489,73 @@ export class Router {
             );
         }
 
-        const requestId = String(req.body.requestId).trim();
-        const code = String(req.body.code).trim();
-        const submitData: ISubmitData = {
-            requestId,
-            code,
-            receiver: String(req.body.receiver).trim(),
-            signature: String(req.body.signature).trim(),
-        };
+        try {
+            const requestId = String(req.body.requestId).trim();
+            const code = String(req.body.code).trim();
+            const submitData: ISubmitData = {
+                requestId,
+                code,
+                receiver: String(req.body.receiver).trim(),
+                signature: String(req.body.signature).trim(),
+            };
 
-        if (!ContractUtils.verifySubmit(submitData.receiver, submitData, submitData.signature)) {
-            return res.json(
-                this.makeResponseData(401, undefined, {
-                    message: "The signature value entered is not valid.",
-                })
-            );
-        }
+            if (!ContractUtils.verifySubmit(submitData.receiver, submitData, submitData.signature)) {
+                return res.json(
+                    this.makeResponseData(401, undefined, {
+                        message: "The signature value entered is not valid.",
+                    })
+                );
+            }
 
-        if (this._validators.get(submitData.receiver.toLowerCase()) === undefined) {
-            return res.json(
-                this.makeResponseData(402, undefined, {
-                    message: "Receiver is not validator.",
-                })
-            );
-        }
+            if (this._validators.get(submitData.receiver.toLowerCase()) === undefined) {
+                return res.json(
+                    this.makeResponseData(402, undefined, {
+                        message: "Receiver is not validator.",
+                    })
+                );
+            }
 
-        const validation = this._validations.get(requestId);
-        if (validation !== undefined) {
-            if (validation.status === EmailValidationStatus.SENT) {
-                validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
-                if (validation.sendCode === validation.receiveCode) {
-                    await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
-                    validation.status = EmailValidationStatus.CONFIRMED;
-                    return res.json(this.makeResponseData(200, "OK"));
-                } else {
+            const validation = this._validations.get(requestId);
+            if (validation !== undefined) {
+                if (validation.status === EmailValidationStatus.SENT) {
+                    if (validation.expirationTimestamp > ContractUtils.getTimeStamp()) {
+                        validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
+                        if (validation.sendCode === validation.receiveCode) {
+                            await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
+                            validation.status = EmailValidationStatus.CONFIRMED;
+                            return res.json(this.makeResponseData(200, "OK"));
+                        } else {
+                            return res.json(
+                                this.makeResponseData(440, null, { message: "The authentication code is different." })
+                            );
+                        }
+                    } else {
+                        validation.status = EmailValidationStatus.EXPIRED;
+                        return res.json(
+                            this.makeResponseData(430, null, { message: "The authentication code is expired." })
+                        );
+                    }
+                } else if (validation.status === EmailValidationStatus.NONE) {
+                    return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
+                } else if (validation.status === EmailValidationStatus.CONFIRMED) {
                     return res.json(
-                        this.makeResponseData(401, null, { message: "The authentication code is different." })
+                        this.makeResponseData(421, null, { message: "Processing has already been completed." })
+                    );
+                } else if (validation.status === EmailValidationStatus.EXPIRED) {
+                    return res.json(
+                        this.makeResponseData(422, null, { message: "The authentication code is expired." })
                     );
                 }
+            } else {
+                return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
             }
-        } else {
-            return res.json(this.makeResponseData(400, null, { message: "No such request found." }));
+        } catch (error: any) {
+            const message = error.message !== undefined ? error.message : "Failed broadcast submit";
+            return res.json(
+                this.makeResponseData(500, undefined, {
+                    message,
+                })
+            );
         }
     }
 
