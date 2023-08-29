@@ -10,7 +10,6 @@ import {
     IEmailValidation,
     ISubmitData,
     ITransaction,
-    TransactionStatus,
     ValidatorNodeInfo,
 } from "../types";
 import { ContractUtils } from "../utils/ContractUtils";
@@ -19,7 +18,7 @@ import { ValidatorNode } from "./ValidatorNode";
 
 import { NonceManager } from "@ethersproject/experimental";
 import "@nomiclabs/hardhat-ethers";
-import { BigNumber, BigNumberish, Signer, Wallet } from "ethers";
+import { Signer, Wallet } from "ethers";
 import * as hre from "hardhat";
 
 import express from "express";
@@ -146,14 +145,10 @@ export class Router {
                     .exists()
                     .trim()
                     .matches(/^(0x)[0-9a-f]{130}$/i),
-                body("status")
-                    .exists()
-                    .trim()
-                    .matches(/^[0-1]+$/),
                 body("requestId")
                     .exists()
                     .trim()
-                    .matches(/^[0-9]+$/),
+                    .matches(/^(0x)[0-9a-f]{64}$/i),
                 body("receiver").exists().trim().isEthereumAddress(),
                 body("signature")
                     .exists()
@@ -165,7 +160,7 @@ export class Router {
         this._validator.app.post(
             "/submit",
             [
-                body("txHash")
+                body("requestId")
                     .exists()
                     .trim()
                     .matches(/^(0x)[0-9a-f]{64}$/i),
@@ -179,7 +174,7 @@ export class Router {
         this._validator.app.post(
             "/broadcastSubmit",
             [
-                body("txHash")
+                body("requestId")
                     .exists()
                     .trim()
                     .matches(/^(0x)[0-9a-f]{64}$/i),
@@ -232,7 +227,7 @@ export class Router {
             const signature: string = String(req.body.signature).trim(); // 서명
             const nonce = await (await this.getContract()).nonceOf(address);
             const emailHash = ContractUtils.sha256String(email);
-            if (!ContractUtils.verify(address, email, nonce, signature)) {
+            if (!ContractUtils.verifyRequestData(address, email, nonce, signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
                         message: "The signature value entered is not valid.",
@@ -257,7 +252,7 @@ export class Router {
                     })
                 );
             }
-
+            const requestId = ContractUtils.getRequestId(emailHash, address, nonce);
             const tx: ITransaction = {
                 request: {
                     email,
@@ -265,51 +260,36 @@ export class Router {
                     nonce: nonce.toString(),
                     signature,
                 },
-                status: TransactionStatus.NONE,
-                requestId: "0",
+                requestId,
                 receiver: this._wallet.address,
                 signature: "",
             };
-
-            const txHash = ContractUtils.getTxHash(tx);
-            tx.signature = await ContractUtils.signTx(this.getSigner(), txHash);
-            const txHashString = ContractUtils.BufferToString(Buffer.from(txHash));
-            const validation = {
+            tx.signature = await ContractUtils.signTx(this.getSigner(), tx);
+            this._validations.set(requestId, {
                 tx,
                 status: EmailValidationStatus.NONE,
                 sendCode: "",
                 receiveCode: "",
-            };
-            this._validations.set(txHashString, validation);
+            });
             await this._peers.broadcast(tx);
-
             const sendCode = this._codeGenerator.getCode();
             await this._emailSender.send(this._validatorIndex, sendCode);
-            validation.status = EmailValidationStatus.SENT;
-            validation.sendCode = sendCode;
-            this._validations.set(txHashString, validation);
+            const validation = this._validations.get(requestId);
+            if (validation !== undefined) {
+                validation.sendCode = sendCode;
+                validation.status = EmailValidationStatus.SENT;
+            }
 
             try {
                 const contractTx = await (await this.getContract())
                     .connect(this.getSigner())
-                    .addRequest(emailHash, address, signature);
+                    .addRequest(tx.requestId, emailHash, address, signature);
 
-                const receipt = await contractTx.wait();
-                const events = receipt.events?.filter((x) => x.event === "AddedRequestItem");
-                const requestId =
-                    events !== undefined && events.length > 0 && events[0].args !== undefined
-                        ? BigNumber.from(events[0].args[0])
-                        : BigNumber.from(0);
-
-                validation.tx.status = TransactionStatus.SAVED;
-                validation.tx.requestId = requestId.toString();
-                await this._peers.broadcast(validation.tx);
-
-                /// TODO 검증자들의 투표
+                await contractTx.wait();
 
                 return res.json(
                     this.makeResponseData(200, {
-                        txHash: txHashString,
+                        requestId,
                         contractTxHash: contractTx.hash,
                     })
                 );
@@ -356,15 +336,12 @@ export class Router {
                 nonce,
                 signature,
             },
-            status: Number(req.body.status),
-            requestId: String(req.body.requestId),
+            requestId: String(req.body.requestId).trim(),
             receiver: String(req.body.receiver).trim(),
             signature: String(req.body.signature).trim(),
         };
 
-        const txHash = ContractUtils.getTxHash(tx);
-        const txHashString = ContractUtils.BufferToString(Buffer.from(txHash));
-        if (!ContractUtils.verifyTx(tx.receiver, txHash, tx.signature)) {
+        if (!ContractUtils.verifyTx(tx.receiver, tx, tx.signature)) {
             return res.json(
                 this.makeResponseData(401, undefined, {
                     message: "The signature value entered is not valid.",
@@ -380,24 +357,15 @@ export class Router {
             );
         }
 
-        if (tx.status === TransactionStatus.NONE) {
-            const sendCode = this._codeGenerator.getCode();
-            await this._emailSender.send(this._validatorIndex, sendCode);
-            this._validations.set(txHashString, {
-                tx,
-                status: EmailValidationStatus.SENT,
-                sendCode,
-                receiveCode: "",
-            });
-            return res.json(this.makeResponseData(200, {}));
-        } else if (tx.status === TransactionStatus.SAVED) {
-            const validation = this._validations.get(txHashString);
-            if (validation !== undefined) {
-                validation.tx.status = 1;
-                validation.tx.requestId = tx.requestId;
-            }
-            return res.json(this.makeResponseData(200, {}));
-        }
+        const sendCode = this._codeGenerator.getCode();
+        await this._emailSender.send(this._validatorIndex, sendCode);
+        this._validations.set(tx.requestId, {
+            tx,
+            status: EmailValidationStatus.SENT,
+            sendCode,
+            receiveCode: "",
+        });
+        return res.json(this.makeResponseData(200, {}));
     }
 
     private async postSubmit(req: express.Request, res: express.Response) {
@@ -413,17 +381,17 @@ export class Router {
             );
         }
 
-        const txHash = String(req.body.txHash).trim();
+        const requestId = String(req.body.requestId).trim();
         const code = String(req.body.code).trim();
-        const validation = this._validations.get(txHash);
         const submitData: ISubmitData = {
-            txHash,
+            requestId,
             code,
             receiver: this._wallet.address,
             signature: "",
         };
-
         submitData.signature = await ContractUtils.signSubmit(this.getSigner(), submitData);
+
+        const validation = this._validations.get(requestId);
         if (validation !== undefined) {
             if (validation.status === EmailValidationStatus.SENT) {
                 validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
@@ -460,11 +428,10 @@ export class Router {
             );
         }
 
-        const txHash = String(req.body.txHash).trim();
+        const requestId = String(req.body.requestId).trim();
         const code = String(req.body.code).trim();
-        const validation = this._validations.get(txHash);
         const submitData: ISubmitData = {
-            txHash,
+            requestId,
             code,
             receiver: String(req.body.receiver).trim(),
             signature: String(req.body.signature).trim(),
@@ -486,13 +453,13 @@ export class Router {
             );
         }
 
+        const validation = this._validations.get(requestId);
         if (validation !== undefined) {
             if (validation.status === EmailValidationStatus.SENT) {
                 validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
                 if (validation.sendCode === validation.receiveCode) {
                     await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
                     validation.status = EmailValidationStatus.CONFIRMED;
-                    this._validations.set(txHash, validation);
                     return res.json(this.makeResponseData(200, "OK"));
                 } else {
                     return res.json(
@@ -505,7 +472,7 @@ export class Router {
         }
     }
 
-    private async voteAgreement(requestId: BigNumberish, ballot: Ballot) {
+    private async voteAgreement(requestId: string, ballot: Ballot) {
         await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId, ballot);
     }
 
@@ -528,7 +495,7 @@ export class Router {
         const old_period = Math.floor(this._oldTimeStamp / ValidatorNode.INTERVAL_SECONDS);
         if (old_period !== this._periodNumber) {
             await this._peers.check();
-            await this.makePeers();
+            /// await this.makePeers();
             /// TODO 진행이 되지 않는 요청건이 있는지 검사한다
         }
         this._oldTimeStamp = currentTime;

@@ -7,7 +7,7 @@ import {
 import { LinkItems, RequestItems } from "../generated/schema";
 
 export function handleAddedRequestItem(event: AddedRequestItemEvent): void {
-  let entity = new RequestItems(event.params.id.toString());
+  let entity = new RequestItems(event.params.id);
   entity.email = event.params.email;
   entity.wallet = event.params.wallet;
   entity.email = event.params.email;
@@ -23,9 +23,9 @@ export function handleAddedRequestItem(event: AddedRequestItemEvent): void {
 export function handleAcceptedRequestItem(
   event: AcceptedRequestItemEvent
 ): void {
-  let entity = RequestItems.load(event.params.id.toString());
+  let entity = RequestItems.load(event.params.id);
   if (entity === null) {
-    entity = new RequestItems(event.params.id.toString());
+    entity = new RequestItems(event.params.id);
   }
   entity.email = event.params.email;
   entity.wallet = event.params.wallet;
@@ -38,9 +38,9 @@ export function handleAcceptedRequestItem(
 
   entity.save();
 
-  let linkEntity = LinkItems.load(event.params.email.toHex());
+  let linkEntity = LinkItems.load(event.params.email);
   if (linkEntity === null) {
-    linkEntity = new LinkItems(event.params.email.toHex());
+    linkEntity = new LinkItems(event.params.email);
   }
   linkEntity.wallet = event.params.wallet;
   linkEntity.blockNumber = event.block.number;
@@ -52,9 +52,9 @@ export function handleAcceptedRequestItem(
 export function handleRejectedRequestItem(
   event: RejectedRequestItemEvent
 ): void {
-  let entity = RequestItems.load(event.params.id.toString());
+  let entity = RequestItems.load(event.params.id);
   if (entity === null) {
-    entity = new RequestItems(event.params.id.toString());
+    entity = new RequestItems(event.params.id);
   }
   entity.email = event.params.email;
   entity.wallet = event.params.wallet;
@@ -69,9 +69,9 @@ export function handleRejectedRequestItem(
 }
 
 export function handleUpdatedLinkItem(event: UpdatedLinkItemEvent): void {
-  let linkEntity = LinkItems.load(event.params.email.toHex());
+  let linkEntity = LinkItems.load(event.params.email);
   if (linkEntity === null) {
-    linkEntity = new LinkItems(event.params.email.toHex());
+    linkEntity = new LinkItems(event.params.email);
   }
   linkEntity.wallet = event.params.wallet2;
   linkEntity.blockNumber = event.block.number;

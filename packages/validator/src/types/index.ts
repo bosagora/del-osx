@@ -4,11 +4,6 @@ export interface ValidatorNodeInfo {
     version: string;
 }
 
-export enum TransactionStatus {
-    NONE,
-    SAVED,
-}
-
 export interface ITransaction {
     request: {
         email: string;
@@ -16,14 +11,13 @@ export interface ITransaction {
         nonce: string;
         signature: string;
     };
-    status: TransactionStatus;
     requestId: string;
     receiver: string;
     signature: string;
 }
 
 export interface ISubmitData {
-    txHash: string;
+    requestId: string;
     code: string;
     receiver: string;
     signature: string;

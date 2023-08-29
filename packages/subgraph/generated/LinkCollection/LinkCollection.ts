@@ -23,8 +23,8 @@ export class AcceptedRequestItem__Params {
     this._event = event;
   }
 
-  get id(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
+  get id(): Bytes {
+    return this._event.parameters[0].value.toBytes();
   }
 
   get email(): Bytes {
@@ -49,8 +49,8 @@ export class AddedRequestItem__Params {
     this._event = event;
   }
 
-  get id(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
+  get id(): Bytes {
+    return this._event.parameters[0].value.toBytes();
   }
 
   get email(): Bytes {
@@ -75,8 +75,8 @@ export class RejectedRequestItem__Params {
     this._event = event;
   }
 
-  get id(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
+  get id(): Bytes {
+    return this._event.parameters[0].value.toBytes();
   }
 
   get email(): Bytes {
@@ -114,6 +114,42 @@ export class UpdatedLinkItem__Params {
   }
 }
 
+export class LinkCollection__getValidatorResultValue0Struct extends ethereum.Tuple {
+  get validator(): Address {
+    return this[0].toAddress();
+  }
+
+  get index(): BigInt {
+    return this[1].toBigInt();
+  }
+
+  get endpoint(): string {
+    return this[2].toString();
+  }
+
+  get status(): i32 {
+    return this[3].toI32();
+  }
+}
+
+export class LinkCollection__getValidatorsResultValue0Struct extends ethereum.Tuple {
+  get validator(): Address {
+    return this[0].toAddress();
+  }
+
+  get index(): BigInt {
+    return this[1].toBigInt();
+  }
+
+  get endpoint(): string {
+    return this[2].toString();
+  }
+
+  get status(): i32 {
+    return this[3].toI32();
+  }
+}
+
 export class LinkCollection extends ethereum.SmartContract {
   static bind(address: Address): LinkCollection {
     return new LinkCollection("LinkCollection", address);
@@ -132,6 +168,112 @@ export class LinkCollection extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBytes());
+  }
+
+  getAddressOfValidators(): Array<Address> {
+    let result = super.call(
+      "getAddressOfValidators",
+      "getAddressOfValidators():(address[])",
+      []
+    );
+
+    return result[0].toAddressArray();
+  }
+
+  try_getAddressOfValidators(): ethereum.CallResult<Array<Address>> {
+    let result = super.tryCall(
+      "getAddressOfValidators",
+      "getAddressOfValidators():(address[])",
+      []
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddressArray());
+  }
+
+  getValidator(_idx: BigInt): LinkCollection__getValidatorResultValue0Struct {
+    let result = super.call(
+      "getValidator",
+      "getValidator(uint256):((address,uint256,string,uint8))",
+      [ethereum.Value.fromUnsignedBigInt(_idx)]
+    );
+
+    return changetype<LinkCollection__getValidatorResultValue0Struct>(
+      result[0].toTuple()
+    );
+  }
+
+  try_getValidator(
+    _idx: BigInt
+  ): ethereum.CallResult<LinkCollection__getValidatorResultValue0Struct> {
+    let result = super.tryCall(
+      "getValidator",
+      "getValidator(uint256):((address,uint256,string,uint8))",
+      [ethereum.Value.fromUnsignedBigInt(_idx)]
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      changetype<LinkCollection__getValidatorResultValue0Struct>(
+        value[0].toTuple()
+      )
+    );
+  }
+
+  getValidatorLength(): BigInt {
+    let result = super.call(
+      "getValidatorLength",
+      "getValidatorLength():(uint256)",
+      []
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_getValidatorLength(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "getValidatorLength",
+      "getValidatorLength():(uint256)",
+      []
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  getValidators(): Array<LinkCollection__getValidatorsResultValue0Struct> {
+    let result = super.call(
+      "getValidators",
+      "getValidators():((address,uint256,string,uint8)[])",
+      []
+    );
+
+    return result[0].toTupleArray<
+      LinkCollection__getValidatorsResultValue0Struct
+    >();
+  }
+
+  try_getValidators(): ethereum.CallResult<
+    Array<LinkCollection__getValidatorsResultValue0Struct>
+  > {
+    let result = super.tryCall(
+      "getValidators",
+      "getValidators():((address,uint256,string,uint8)[])",
+      []
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      value[0].toTupleArray<LinkCollection__getValidatorsResultValue0Struct>()
+    );
   }
 
   nonceOf(_wallet: Address): BigInt {
@@ -239,16 +381,20 @@ export class AddRequestCall__Inputs {
     this._call = call;
   }
 
-  get _email(): Bytes {
+  get _id(): Bytes {
     return this._call.inputValues[0].value.toBytes();
   }
 
+  get _email(): Bytes {
+    return this._call.inputValues[1].value.toBytes();
+  }
+
   get _wallet(): Address {
-    return this._call.inputValues[1].value.toAddress();
+    return this._call.inputValues[2].value.toAddress();
   }
 
   get _signature(): Bytes {
-    return this._call.inputValues[2].value.toBytes();
+    return this._call.inputValues[3].value.toBytes();
   }
 }
 
@@ -306,6 +452,36 @@ export class UpdateCall__Outputs {
   }
 }
 
+export class UpdateEndpointCall extends ethereum.Call {
+  get inputs(): UpdateEndpointCall__Inputs {
+    return new UpdateEndpointCall__Inputs(this);
+  }
+
+  get outputs(): UpdateEndpointCall__Outputs {
+    return new UpdateEndpointCall__Outputs(this);
+  }
+}
+
+export class UpdateEndpointCall__Inputs {
+  _call: UpdateEndpointCall;
+
+  constructor(call: UpdateEndpointCall) {
+    this._call = call;
+  }
+
+  get _endpoint(): string {
+    return this._call.inputValues[0].value.toString();
+  }
+}
+
+export class UpdateEndpointCall__Outputs {
+  _call: UpdateEndpointCall;
+
+  constructor(call: UpdateEndpointCall) {
+    this._call = call;
+  }
+}
+
 export class VoteRequestCall extends ethereum.Call {
   get inputs(): VoteRequestCall__Inputs {
     return new VoteRequestCall__Inputs(this);
@@ -323,8 +499,8 @@ export class VoteRequestCall__Inputs {
     this._call = call;
   }
 
-  get _id(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
+  get _id(): Bytes {
+    return this._call.inputValues[0].value.toBytes();
   }
 
   get _ballot(): i32 {

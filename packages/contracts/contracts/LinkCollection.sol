@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 // E001 : invalid email hash
 // E002 : invalid address
 // E003 : not validator
+// E004 : invalid ID
 
 /// Contract for converting e-mail to wallet
 contract LinkCollection {
@@ -26,7 +27,7 @@ contract LinkCollection {
     }
 
     struct RequestItem {
-        uint256 id;
+        bytes32 id;
         bytes32 email;
         address wallet;
         bytes signature;
@@ -36,7 +37,8 @@ contract LinkCollection {
         mapping(address => Ballot) ballots;
         RequestStatus status;
     }
-    mapping(uint256 => RequestItem) private requests;
+    mapping(bytes32 => RequestItem) private requests;
+    bytes32[] private requestIds;
 
     enum Ballot {
         NONE,
@@ -46,7 +48,6 @@ contract LinkCollection {
     }
 
     uint256 private quorum;
-    uint256 private latestId;
 
     /// @notice 검증자의 상태코드
     enum ValidatorStatus {
@@ -62,14 +63,14 @@ contract LinkCollection {
     }
 
     mapping(address => ValidatorItem) private validators;
-    address[] private validatorItems;
+    address[] private validatorAddresses;
 
     /// @notice 등록요청인 완료된 후 발생되는 이벤트
-    event AddedRequestItem(uint256 id, bytes32 email, address wallet);
+    event AddedRequestItem(bytes32 id, bytes32 email, address wallet);
     /// @notice 등록요청이 승인된 후 발생되는 이벤트
-    event AcceptedRequestItem(uint256 id, bytes32 email, address wallet);
+    event AcceptedRequestItem(bytes32 id, bytes32 email, address wallet);
     /// @notice 등록요청이 거부된 후 발생되는 이벤트
-    event RejectedRequestItem(uint256 id, bytes32 email, address wallet);
+    event RejectedRequestItem(bytes32 id, bytes32 email, address wallet);
     /// @notice 항목이 업데이트 후 발생되는 이벤트
     event UpdatedLinkItem(bytes32 email, address wallet1, address wallet2);
 
@@ -83,12 +84,11 @@ contract LinkCollection {
                 endpoint: "",
                 status: ValidatorStatus.ACTIVE
             });
-            validatorItems.push(_validators[i]);
+            validatorAddresses.push(_validators[i]);
             validators[_validators[i]] = item;
         }
 
         quorum = uint256(2000) / uint256(3);
-        latestId = 0;
     }
 
     /// @notice 검증자들만 호출할 수 있도록 해준다.
@@ -134,10 +134,12 @@ contract LinkCollection {
     }
 
     /// @notice 이메일-지갑주소 항목의 등록을 요청한다
+    /// @param _id 요청 아이디
     /// @param _email 이메일의 해시
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
-    function addRequest(bytes32 _email, address _wallet, bytes calldata _signature) public {
+    function addRequest(bytes32 _id, bytes32 _email, address _wallet, bytes calldata _signature) public {
+        require(requests[_id].status == RequestStatus.INVALID, "E004");
         require(_email != NULL, "E001");
         bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "E000");
@@ -147,21 +149,21 @@ contract LinkCollection {
 
         nonce[_wallet]++;
 
-        uint256 id = latestId++;
-        requests[id].id = id;
-        requests[id].email = _email;
-        requests[id].wallet = _wallet;
-        requests[id].signature = _signature;
-        requests[id].status = RequestStatus.REQUESTED;
+        requests[_id].id = _id;
+        requests[_id].email = _email;
+        requests[_id].wallet = _wallet;
+        requests[_id].signature = _signature;
+        requests[_id].status = RequestStatus.REQUESTED;
+        requestIds.push(_id);
 
-        emit AddedRequestItem(id, _email, _wallet);
+        emit AddedRequestItem(_id, _email, _wallet);
     }
 
     /// @notice 검증자들이 이메일 검증결과를 등록한다.
     /// @param _id 요청 아이디
     /// @param _ballot 이메일 검증결과
-    function voteRequest(uint _id, Ballot _ballot) public onlyValidator {
-        require(requests[_id].status != RequestStatus.INVALID, "");
+    function voteRequest(bytes32 _id, Ballot _ballot) public onlyValidator {
+        require(requests[_id].status != RequestStatus.INVALID, "E004");
 
         if (requests[_id].status != RequestStatus.ACCEPTED) {
             if (requests[_id].ballots[msg.sender] != _ballot) {
@@ -180,7 +182,7 @@ contract LinkCollection {
                     requests[_id].abstaining++;
                 }
 
-                if ((requests[_id].agreement * 1000) / validatorItems.length >= quorum) {
+                if ((requests[_id].agreement * 1000) / validatorAddresses.length >= quorum) {
                     if (
                         emailToAddress[requests[_id].email] == address(0x00) &&
                         addressToEmail[requests[_id].wallet] == bytes32(0x00)
@@ -225,33 +227,33 @@ contract LinkCollection {
 
     /// @notice 검증자들의 정보를 리턴한다.
     function getValidators() public view returns (ValidatorItem[] memory) {
-        uint256 len = validatorItems.length;
+        uint256 len = validatorAddresses.length;
         ValidatorItem[] memory items = new ValidatorItem[](len);
         for (uint256 i = 0; i < len; i++) {
-            items[i] = validators[validatorItems[i]];
+            items[i] = validators[validatorAddresses[i]];
         }
         return items;
     }
 
     /// @notice 검증자들의 주소를 리턴한다.
     function getAddressOfValidators() public view returns (address[] memory) {
-        uint256 len = validatorItems.length;
+        uint256 len = validatorAddresses.length;
         address[] memory items = new address[](len);
         for (uint256 i = 0; i < len; i++) {
-            items[i] = validatorItems[i];
+            items[i] = validatorAddresses[i];
         }
         return items;
     }
 
     /// @notice 검증자들의 갯수를 리턴한다
     function getValidatorLength() public view returns (uint256) {
-        return validatorItems.length;
+        return validatorAddresses.length;
     }
 
     /// @notice 검증자의 정보를 리턴한다.
     /// @param _idx 검증자의 인덱스
     function getValidator(uint _idx) public view returns (ValidatorItem memory) {
-        require(_idx < validatorItems.length, "Out of range");
-        return validators[validatorItems[_idx]];
+        require(_idx < validatorAddresses.length, "Out of range");
+        return validators[validatorAddresses[_idx]];
     }
 }

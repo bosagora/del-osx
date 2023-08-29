@@ -1,6 +1,6 @@
 {
     "name": "del-osx-artifacts",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Contracts that links e-mail and wallet addresses",
     "files": [
         "**/*.sol"
