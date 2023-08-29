@@ -22,6 +22,13 @@ export interface ITransaction {
     signature: string;
 }
 
+export interface ISubmitData {
+    txHash: string;
+    code: string;
+    receiver: string;
+    signature: string;
+}
+
 export enum EmailValidationStatus {
     NONE,
     SENT,
@@ -31,6 +38,8 @@ export enum EmailValidationStatus {
 export interface IEmailValidation {
     tx: ITransaction;
     status: EmailValidationStatus;
+    sendCode: string;
+    receiveCode: string;
 }
 
 export enum Ballot {

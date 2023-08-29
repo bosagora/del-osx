@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import { ITransaction, ValidatorNodeInfo } from "../types";
+import { ISubmitData, ITransaction, ValidatorNodeInfo } from "../types";
 
 export enum PeerStatus {
     UNKNOWN,
@@ -10,6 +10,7 @@ export enum PeerStatus {
 
 export interface IPeer {
     nodeId: string;
+    index: number;
     endpoint: string;
     version: string;
     status: PeerStatus;
@@ -17,13 +18,15 @@ export interface IPeer {
 
 export class Peer implements IPeer {
     public nodeId: string;
+    public index: number;
     public endpoint: string;
     public version: string;
     public status: PeerStatus;
     private client: AxiosInstance;
 
-    constructor(nodeId: string, endpoint: string, version: string) {
+    constructor(nodeId: string, index: number, endpoint: string, version: string) {
         this.nodeId = nodeId;
+        this.index = index;
         this.endpoint = endpoint;
         this.version = version;
         this.status = PeerStatus.UNKNOWN;
@@ -50,21 +53,17 @@ export class Peer implements IPeer {
         }
     }
 
-    public async handshake(): Promise<void> {
+    public async broadcast(data: ITransaction): Promise<void> {
         try {
-            await this.client.post("/handshake", {
-                nodeId: this.nodeId,
-                endpoint: this.endpoint,
-                version: this.version,
-            });
+            await this.client.post("/broadcast", data);
         } catch (e) {
             this.status = PeerStatus.INACTIVE;
         }
     }
 
-    public async broadcast(data: ITransaction): Promise<void> {
+    public async broadcastSubmit(data: ISubmitData): Promise<void> {
         try {
-            await this.client.post("/broadcast", data);
+            await this.client.post("/broadcastSubmit", data);
         } catch (e) {
             this.status = PeerStatus.INACTIVE;
         }
@@ -83,9 +82,16 @@ export class Peers {
             await item.check();
         }
     }
-    public async broadcast(data: any) {
+
+    public async broadcast(data: ITransaction) {
         for (const item of this.items.filter((m) => m.status === PeerStatus.ACTIVE)) {
             await item.broadcast(data);
+        }
+    }
+
+    public async broadcastSubmit(data: ISubmitData) {
+        for (const item of this.items.filter((m) => m.status === PeerStatus.ACTIVE)) {
+            await item.broadcastSubmit(data);
         }
     }
 }

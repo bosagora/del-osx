@@ -68,7 +68,7 @@ describe("Test of ValidatorNode", function () {
         before("Create Validator Nodes", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
                 validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
-                validatorNodes.push(new TestValidatorNode(configs[idx]));
+                validatorNodes.push(new TestValidatorNode(configs[idx], idx));
             }
         });
 
@@ -137,6 +137,7 @@ describe("Test of ValidatorNode", function () {
             }
         });
 
+        let txHash = "";
         it("Add link data", async () => {
             const nonce = await linkCollectionContract.nonceOf(users[0].address);
             const signature = await ContractUtils.sign(users[0], emails[0], nonce);
@@ -150,6 +151,22 @@ describe("Test of ValidatorNode", function () {
             assert.deepStrictEqual(response.status, 200);
             assert.deepStrictEqual(response.data.code, 200);
             assert(response.data.data.txHash !== undefined);
+
+            txHash = response.data.data.txHash;
+        });
+
+        it("Wait", async () => {
+            await delay(3000);
+        });
+
+        it("Submit", async () => {
+            const url = URI(validatorNodeURLs[0]).filename("submit").toString();
+            const response = await client.post(url, { txHash, code: "000102" });
+            assert.strictEqual(response.data.data, "OK");
+        });
+
+        it("Wait", async () => {
+            await delay(3000);
         });
 
         it("Check link data", async () => {

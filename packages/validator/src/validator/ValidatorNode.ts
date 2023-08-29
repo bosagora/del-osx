@@ -1,4 +1,6 @@
 import { Config } from "../common/Config";
+import { CodeGenerator, ICodeGenerator } from "../delegator/CodeGenerator";
+import { EMailSender, IEmailSender } from "../delegator/EMailSender";
 import { Peer, Peers } from "./Peers";
 import { Router } from "./Router";
 import { Worker } from "./Worker";
@@ -10,7 +12,7 @@ import http from "http";
 
 export class ValidatorNode {
     public static INIT_WAITING_SECONDS: number = 2;
-    public static INTERVAL_SECONDS: number = 5;
+    public static INTERVAL_SECONDS: number = 12;
     private readonly _app: express.Application;
     private _server: http.Server | null = null;
 
@@ -19,11 +21,18 @@ export class ValidatorNode {
     private readonly _peers: Peers;
     private readonly _worker: Worker;
 
-    constructor(config: Config) {
+    private readonly _emailSender: IEmailSender;
+    private readonly _codeGenerator: ICodeGenerator;
+
+    constructor(config: Config, emailSender?: IEmailSender, codeGenerator?: ICodeGenerator) {
         this._app = express();
         this._config = config;
         this._peers = new Peers();
-        this._router = new Router(this, this._config, this._peers);
+        if (emailSender !== undefined) this._emailSender = emailSender;
+        else this._emailSender = new EMailSender();
+        if (codeGenerator !== undefined) this._codeGenerator = codeGenerator;
+        else this._codeGenerator = new CodeGenerator();
+        this._router = new Router(this, this._config, this._peers, this._emailSender, this._codeGenerator);
         this._worker = new Worker("*/1 * * * * *", this, this._router);
     }
 
