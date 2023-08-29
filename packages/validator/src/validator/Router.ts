@@ -2,10 +2,13 @@ import { LinkCollection } from "../../typechain-types";
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
+import { ICodeGenerator } from "../delegator/CodeGenerator";
+import { IEmailSender } from "../delegator/EMailSender";
 import {
     Ballot,
     EmailValidationStatus,
     IEmailValidation,
+    ISubmitData,
     ITransaction,
     TransactionStatus,
     ValidatorNodeInfo,
@@ -27,7 +30,7 @@ export class Router {
     private readonly _validator: ValidatorNode;
     private readonly _config: Config;
     private readonly _wallet: Wallet;
-    private readonly _peers: Peers;
+    private _peers: Peers;
     private _contract: LinkCollection | undefined;
 
     private readonly nodeInfo: ValidatorNodeInfo;
@@ -38,14 +41,27 @@ export class Router {
     private _oldTimeStamp: number = 0;
     private _periodNumber: number = 0;
 
+    private _validatorIndex: number;
     private _validators: Map<string, string> = new Map<string, string>();
     private _validations: Map<string, IEmailValidation> = new Map<string, IEmailValidation>();
 
-    constructor(validator: ValidatorNode, config: Config, peers: Peers) {
+    private readonly _emailSender: IEmailSender;
+    private readonly _codeGenerator: ICodeGenerator;
+
+    constructor(
+        validator: ValidatorNode,
+        config: Config,
+        peers: Peers,
+        emailSender: IEmailSender,
+        codeGenerator: ICodeGenerator
+    ) {
         this._validator = validator;
         this._config = config;
         this._peers = peers;
+        this._emailSender = emailSender;
+        this._codeGenerator = codeGenerator;
         this._wallet = new Wallet(this._config.validator.validator_key);
+        this._validatorIndex = -1;
 
         const host = this._config.node.external !== "" ? this._config.node.external : ip.address();
         this.nodeInfo = {
@@ -78,14 +94,27 @@ export class Router {
 
     public async makePeers() {
         const res = await (await this.getContract()).getValidators();
-        this._validators.clear();
-        this._peers.items.length = 0;
+        const newValidators: Map<string, string> = new Map<string, string>();
+        const newPeers: Peers = new Peers();
+
         for (const item of res) {
             const validator = item.validator.toLowerCase();
-            this._validators.set(validator, item.endpoint);
-            if (this._wallet.address.toLowerCase() === validator) continue;
-            this._peers.items.push(new Peer(validator, item.endpoint, ""));
+            newValidators.set(validator, item.endpoint);
+            if (this._wallet.address.toLowerCase() === validator) {
+                this._validatorIndex = item.index.toNumber();
+            } else {
+                const oldPeer = this._peers.items.find((m) => m.nodeId === item.validator);
+                const newPeer = new Peer(validator, item.index.toNumber(), item.endpoint, "");
+                if (oldPeer !== undefined) {
+                    newPeer.status = oldPeer.status;
+                    newPeer.version = oldPeer.version;
+                }
+                newPeers.items.push(newPeer);
+            }
         }
+
+        this._validators = newValidators;
+        this._peers = newPeers;
     }
 
     public registerRoutes() {
@@ -132,6 +161,39 @@ export class Router {
                     .matches(/^(0x)[0-9a-f]{130}$/i),
             ],
             this.postBroadcast.bind(this)
+        );
+        this._validator.app.post(
+            "/submit",
+            [
+                body("txHash")
+                    .exists()
+                    .trim()
+                    .matches(/^(0x)[0-9a-f]{64}$/i),
+                body("code")
+                    .exists()
+                    .trim()
+                    .matches(/^[0-9]+$/),
+            ],
+            this.postSubmit.bind(this)
+        );
+        this._validator.app.post(
+            "/broadcastSubmit",
+            [
+                body("txHash")
+                    .exists()
+                    .trim()
+                    .matches(/^(0x)[0-9a-f]{64}$/i),
+                body("code")
+                    .exists()
+                    .trim()
+                    .matches(/^[0-9]+$/),
+                body("receiver").exists().trim().isEthereumAddress(),
+                body("signature")
+                    .exists()
+                    .trim()
+                    .matches(/^(0x)[0-9a-f]{130}$/i),
+            ],
+            this.postBroadcastSubmit.bind(this)
         );
     }
 
@@ -211,8 +273,21 @@ export class Router {
 
             const txHash = ContractUtils.getTxHash(tx);
             tx.signature = await ContractUtils.signTx(this.getSigner(), txHash);
-            this._validations.set(txHash.toString().toLowerCase(), { tx, status: EmailValidationStatus.NONE });
+            const txHashString = ContractUtils.BufferToString(Buffer.from(txHash));
+            const validation = {
+                tx,
+                status: EmailValidationStatus.NONE,
+                sendCode: "",
+                receiveCode: "",
+            };
+            this._validations.set(txHashString, validation);
             await this._peers.broadcast(tx);
+
+            const sendCode = this._codeGenerator.getCode();
+            await this._emailSender.send(this._validatorIndex, sendCode);
+            validation.status = EmailValidationStatus.SENT;
+            validation.sendCode = sendCode;
+            this._validations.set(txHashString, validation);
 
             try {
                 const contractTx = await (await this.getContract())
@@ -226,16 +301,18 @@ export class Router {
                         ? BigNumber.from(events[0].args[0])
                         : BigNumber.from(0);
 
-                const validation = this._validations.get(txHash.toString().toLowerCase());
-                if (validation !== undefined) {
-                    validation.tx.status = TransactionStatus.SAVED;
-                    validation.tx.requestId = requestId.toString();
-                    await this._peers.broadcast(validation.tx);
-                }
+                validation.tx.status = TransactionStatus.SAVED;
+                validation.tx.requestId = requestId.toString();
+                await this._peers.broadcast(validation.tx);
 
                 /// TODO 검증자들의 투표
 
-                return res.json(this.makeResponseData(200, { txHash: contractTx.hash }));
+                return res.json(
+                    this.makeResponseData(200, {
+                        txHash: txHashString,
+                        contractTxHash: contractTx.hash,
+                    })
+                );
             } catch (error: any) {
                 const message = error.message !== undefined ? error.message : "Failed save request";
                 return res.json(
@@ -286,6 +363,7 @@ export class Router {
         };
 
         const txHash = ContractUtils.getTxHash(tx);
+        const txHashString = ContractUtils.BufferToString(Buffer.from(txHash));
         if (!ContractUtils.verifyTx(tx.receiver, txHash, tx.signature)) {
             return res.json(
                 this.makeResponseData(401, undefined, {
@@ -303,18 +381,127 @@ export class Router {
         }
 
         if (tx.status === TransactionStatus.NONE) {
-            /// TODO 이메일인증 위한 코드 발송
+            const sendCode = this._codeGenerator.getCode();
+            await this._emailSender.send(this._validatorIndex, sendCode);
+            this._validations.set(txHashString, {
+                tx,
+                status: EmailValidationStatus.SENT,
+                sendCode,
+                receiveCode: "",
+            });
             return res.json(this.makeResponseData(200, {}));
         } else if (tx.status === TransactionStatus.SAVED) {
-            const validation = this._validations.get(txHash.toString().toLowerCase());
+            const validation = this._validations.get(txHashString);
             if (validation !== undefined) {
                 validation.tx.status = 1;
                 validation.tx.requestId = tx.requestId;
             }
-            /// TODO 실제에는 아래 코드를 제거해야 합니다. 이메일 검증결과에 따라 찬성투표를 합니다.
-            await this.voteAgreement(tx.requestId, Ballot.AGREEMENT);
-
             return res.json(this.makeResponseData(200, {}));
+        }
+    }
+
+    private async postSubmit(req: express.Request, res: express.Response) {
+        logger.http(`POST /submit`);
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.json(
+                this.makeResponseData(400, undefined, {
+                    message: "Failed to check the validity of parameters.",
+                    validation: errors.array(),
+                })
+            );
+        }
+
+        const txHash = String(req.body.txHash).trim();
+        const code = String(req.body.code).trim();
+        const validation = this._validations.get(txHash);
+        const submitData: ISubmitData = {
+            txHash,
+            code,
+            receiver: this._wallet.address,
+            signature: "",
+        };
+
+        submitData.signature = await ContractUtils.signSubmit(this.getSigner(), submitData);
+        if (validation !== undefined) {
+            if (validation.status === EmailValidationStatus.SENT) {
+                validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
+                if (validation.sendCode === validation.receiveCode) {
+                    await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
+                    validation.status = EmailValidationStatus.CONFIRMED;
+                    await this._peers.broadcastSubmit(submitData);
+                    return res.json(this.makeResponseData(200, "OK"));
+                } else {
+                    await this._peers.broadcastSubmit(submitData);
+                    return res.json(
+                        this.makeResponseData(401, null, { message: "The authentication code is different." })
+                    );
+                }
+            } else {
+                await this._peers.broadcastSubmit(submitData);
+            }
+        } else {
+            await this._peers.broadcastSubmit(submitData);
+            return res.json(this.makeResponseData(400, null, { message: "No such request found." }));
+        }
+    }
+
+    private async postBroadcastSubmit(req: express.Request, res: express.Response) {
+        logger.http(`POST /broadcastSubmit`);
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.json(
+                this.makeResponseData(400, undefined, {
+                    message: "Failed to check the validity of parameters.",
+                    validation: errors.array(),
+                })
+            );
+        }
+
+        const txHash = String(req.body.txHash).trim();
+        const code = String(req.body.code).trim();
+        const validation = this._validations.get(txHash);
+        const submitData: ISubmitData = {
+            txHash,
+            code,
+            receiver: String(req.body.receiver).trim(),
+            signature: String(req.body.signature).trim(),
+        };
+
+        if (!ContractUtils.verifySubmit(submitData.receiver, submitData, submitData.signature)) {
+            return res.json(
+                this.makeResponseData(401, undefined, {
+                    message: "The signature value entered is not valid.",
+                })
+            );
+        }
+
+        if (this._validators.get(submitData.receiver.toLowerCase()) === undefined) {
+            return res.json(
+                this.makeResponseData(402, undefined, {
+                    message: "Receiver is not validator.",
+                })
+            );
+        }
+
+        if (validation !== undefined) {
+            if (validation.status === EmailValidationStatus.SENT) {
+                validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
+                if (validation.sendCode === validation.receiveCode) {
+                    await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
+                    validation.status = EmailValidationStatus.CONFIRMED;
+                    this._validations.set(txHash, validation);
+                    return res.json(this.makeResponseData(200, "OK"));
+                } else {
+                    return res.json(
+                        this.makeResponseData(401, null, { message: "The authentication code is different." })
+                    );
+                }
+            }
+        } else {
+            return res.json(this.makeResponseData(400, null, { message: "No such request found." }));
         }
     }
 
@@ -342,9 +529,7 @@ export class Router {
         if (old_period !== this._periodNumber) {
             await this._peers.check();
             await this.makePeers();
-            // 요청을 처리한다.
-            // 진행이 되지 않는 요청을 해결한다.
-            // 검증이 완료된 요청에 대해서 투표를 시작한다. (이것은 별도로 진행해도 됩니다.)
+            /// TODO 진행이 되지 않는 요청건이 있는지 검사한다
         }
         this._oldTimeStamp = currentTime;
     }

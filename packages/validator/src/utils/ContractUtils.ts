@@ -1,3 +1,5 @@
+import { ISubmitData, ITransaction } from "../types";
+
 import crypto from "crypto";
 import { BigNumberish, Signer } from "ethers";
 // tslint:disable-next-line:no-submodule-imports
@@ -69,6 +71,30 @@ export class ContractUtils {
         let res: string;
         try {
             res = hre.ethers.utils.verifyMessage(txHash, signature);
+        } catch (error) {
+            return false;
+        }
+        return res.toLowerCase() === address.toLowerCase();
+    }
+
+    public static getSubmitHash(data: ISubmitData): Uint8Array {
+        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "string", "address"],
+            [data.txHash, data.code, data.receiver]
+        );
+        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+    }
+
+    public static async signSubmit(signer: Signer, data: ISubmitData): Promise<string> {
+        const message = ContractUtils.getSubmitHash(data);
+        return signer.signMessage(message);
+    }
+
+    public static verifySubmit(address: string, data: ISubmitData, signature: string): boolean {
+        const message = ContractUtils.getSubmitHash(data);
+        let res: string;
+        try {
+            res = hre.ethers.utils.verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
