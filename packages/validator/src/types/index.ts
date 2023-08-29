@@ -65,6 +65,7 @@ export enum EmailValidationStatus {
     NONE,
     SENT,
     CONFIRMED,
+    EXPIRED,
 }
 
 /**
@@ -75,6 +76,7 @@ export interface IEmailValidation {
     status: EmailValidationStatus;
     sendCode: string;
     receiveCode: string;
+    expirationTimestamp: number;
 }
 
 /**
