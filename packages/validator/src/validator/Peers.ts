@@ -1,6 +1,9 @@
 import axios, { AxiosInstance } from "axios";
 import { ISubmitData, ITransaction, ValidatorNodeInfo } from "../types";
 
+/**
+ * 피어의 상태코드
+ */
 export enum PeerStatus {
     UNKNOWN,
     ACTIVE,
@@ -8,14 +11,39 @@ export enum PeerStatus {
     ABNORMAL,
 }
 
+/**
+ * 피어의 데이터구조
+ */
 export interface IPeer {
+    /**
+     * 검증자 노드의 아이디(주소)
+     */
     nodeId: string;
+
+    /**
+     * 검증자의 번호
+     */
     index: number;
+
+    /**
+     * 검증자의 엔드포인트
+     */
     endpoint: string;
+
+    /**
+     * 검증자 클라이언트 프로그램의 버전
+     */
     version: string;
+
+    /**
+     * 피어의 상태코드
+     */
     status: PeerStatus;
 }
 
+/**
+ * 피어의 정보와 메세지 전달 함수를 가지고 있는 클래스
+ */
 export class Peer implements IPeer {
     public nodeId: string;
     public index: number;
@@ -35,6 +63,9 @@ export class Peer implements IPeer {
         });
     }
 
+    /**
+     * 피어의 정보를 조회한다.
+     */
     public async check(): Promise<boolean> {
         try {
             const response = await this.client.get("/info");
@@ -53,6 +84,9 @@ export class Peer implements IPeer {
         }
     }
 
+    /**
+     * 요청정보를 전파한다.
+     */
     public async broadcast(data: ITransaction): Promise<void> {
         try {
             await this.client.post("/broadcast", data);
@@ -61,6 +95,9 @@ export class Peer implements IPeer {
         }
     }
 
+    /**
+     * 인증코드를 전파한다.
+     */
     public async broadcastSubmit(data: ISubmitData): Promise<void> {
         try {
             await this.client.post("/broadcastSubmit", data);
@@ -70,6 +107,9 @@ export class Peer implements IPeer {
     }
 }
 
+/**
+ * 여러 피어들의 정보를 가지고 있는 클래스
+ */
 export class Peers {
     public items: Peer[];
 
@@ -77,18 +117,27 @@ export class Peers {
         this.items = [];
     }
 
+    /**
+     * 피어들의 상태를 확인한다.
+     */
     public async check() {
         for (const item of this.items.filter((m) => m.status !== PeerStatus.ABNORMAL)) {
             await item.check();
         }
     }
 
+    /**
+     * 요청정보를 전파한다.
+     */
     public async broadcast(data: ITransaction) {
         for (const item of this.items.filter((m) => m.status === PeerStatus.ACTIVE)) {
             await item.broadcast(data);
         }
     }
 
+    /**
+     * 인증코드를 전파한다.
+     */
     public async broadcastSubmit(data: ISubmitData) {
         for (const item of this.items.filter((m) => m.status === PeerStatus.ACTIVE)) {
             await item.broadcastSubmit(data);
