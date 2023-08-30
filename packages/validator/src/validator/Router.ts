@@ -18,7 +18,7 @@ import { ValidatorNode } from "./ValidatorNode";
 
 import { NonceManager } from "@ethersproject/experimental";
 import "@nomiclabs/hardhat-ethers";
-import { Signer, Wallet } from "ethers";
+import { BigNumberish, Signer, Wallet } from "ethers";
 import * as hre from "hardhat";
 
 import express from "express";
@@ -230,6 +230,14 @@ export class Router {
         return res.json(this.makeResponseData(200, data, undefined));
     }
 
+    private async getRequestId(emailHash: string, address: string, nonce: BigNumberish): Promise<string> {
+        // 내부에 랜덤으로 32 Bytes 를 생성하여 ID를 생성하므로 무한반복될 가능성이 극히 낮음
+        while (true) {
+            const id = ContractUtils.getRequestId(emailHash, address, nonce);
+            if (await (await this.getContract()).isAvailable(id)) return id;
+        }
+    }
+
     private async postRequest(req: express.Request, res: express.Response) {
         logger.http(`POST /request`);
 
@@ -274,7 +282,7 @@ export class Router {
                     })
                 );
             }
-            const requestId = ContractUtils.getRequestId(emailHash, address, nonce);
+            const requestId = await this.getRequestId(emailHash, address, nonce);
             const tx: ITransaction = {
                 request: {
                     email,
