@@ -36,10 +36,12 @@ describe("Test for LinkCollection", () => {
         const hash = ContractUtils.sha256String(email);
         const signature = await ContractUtils.sign(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
+        expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature))
             .to.emit(contract, "AddedRequestItem")
             .withArgs(requestId, hash, user1.address);
         assert.deepStrictEqual((await contract.nonceOf(user1.address)).toString(), "1");
+        expect(await contract.connect(relay).isAvailable(requestId)).to.equal(false);
     });
 
     it("Vote of request item", async () => {
