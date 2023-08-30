@@ -276,6 +276,25 @@ export class LinkCollection extends ethereum.SmartContract {
     );
   }
 
+  isAvailable(_id: Bytes): boolean {
+    let result = super.call("isAvailable", "isAvailable(bytes32):(bool)", [
+      ethereum.Value.fromFixedBytes(_id)
+    ]);
+
+    return result[0].toBoolean();
+  }
+
+  try_isAvailable(_id: Bytes): ethereum.CallResult<boolean> {
+    let result = super.tryCall("isAvailable", "isAvailable(bytes32):(bool)", [
+      ethereum.Value.fromFixedBytes(_id)
+    ]);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
   nonceOf(_wallet: Address): BigInt {
     let result = super.call("nonceOf", "nonceOf(address):(uint256)", [
       ethereum.Value.fromAddress(_wallet)
