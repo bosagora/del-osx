@@ -133,6 +133,13 @@ contract LinkCollection {
         emit UpdatedLinkItem(_email, _wallet1, _wallet2);
     }
 
+    /// @notice 이용할 수 있는 아이디 인지 알려준다.
+    /// @param _id 요청 아이디
+    function isAvailable(bytes32 _id) public view returns (bool) {
+        if (requests[_id].status == RequestStatus.INVALID) return true;
+        else return false;
+    }
+
     /// @notice 이메일-지갑주소 항목의 등록을 요청한다
     /// @param _id 요청 아이디
     /// @param _email 이메일의 해시
