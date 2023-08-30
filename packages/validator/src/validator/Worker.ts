@@ -98,7 +98,11 @@ export class Worker {
         try {
             await this.work();
         } catch (error) {
-            logger.error(`Failed to execute a scheduler: ${error}`);
+            logger.error({
+                validatorIndex: "none",
+                method: "Worker.workTask()",
+                message: `Failed to execute a scheduler: ${error}`,
+            });
         }
         this.is_working = false;
 

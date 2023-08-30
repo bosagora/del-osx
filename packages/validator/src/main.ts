@@ -15,21 +15,41 @@ async function main() {
         tp.level = config.logging.level;
     });
 
-    logger.info(`host: ${config.node.host}`);
-    logger.info(`port: ${config.node.port}`);
+    logger.info({
+        validatorIndex: "none",
+        method: "main",
+        message: `host: ${config.node.host}`,
+    });
+    logger.info({
+        validatorIndex: "none",
+        method: "main",
+        message: `port: ${config.node.port}`,
+    });
 
     validator = new ValidatorNode(config);
     return validator.start().catch((error: any) => {
         // handle specific listen errors with friendly messages
         switch (error.code) {
             case "EACCES":
-                logger.error(`${config.node.port} requires elevated privileges`);
+                logger.error({
+                    validatorIndex: "none",
+                    method: "main",
+                    message: `${config.node.port} requires elevated privileges`,
+                });
                 break;
             case "EADDRINUSE":
-                logger.error(`Port ${config.node.port} is already in use`);
+                logger.error({
+                    validatorIndex: "none",
+                    method: "main",
+                    message: `Port ${config.node.port} is already in use`,
+                });
                 break;
             default:
-                logger.error(`An error occurred while starting the server: ${error.stack}`);
+                logger.error({
+                    validatorIndex: "none",
+                    method: "main",
+                    message: `An error occurred while starting the server: ${error.stack}`,
+                });
         }
         process.exit(1);
     });
