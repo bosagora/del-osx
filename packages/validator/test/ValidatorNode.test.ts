@@ -91,8 +91,8 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Check link data", async () => {
-            await expect(await linkCollectionContract.toAddress(emailHashes[0])).to.equal(users[0].address);
-            await expect(await linkCollectionContract.toEmail(users[0].address)).to.equal(emailHashes[0]);
+            expect(await linkCollectionContract.toAddress(emailHashes[0])).to.equal(users[0].address);
+            expect(await linkCollectionContract.toEmail(users[0].address)).to.equal(emailHashes[0]);
         });
     });
 });

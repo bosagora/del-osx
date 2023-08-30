@@ -136,6 +136,11 @@ export class Router {
                 }
             }
         }
+        logger.info({
+            validatorIndex: this._validatorIndex,
+            method: "Router.makePeers()",
+            message: "Completed making of peer's information.",
+        });
     }
 
     public registerRoutes() {
@@ -215,13 +220,13 @@ export class Router {
     }
 
     private async getInfo(req: express.Request, res: express.Response) {
-        logger.http(`GET /info`);
+        logger.http({ validatorIndex: this._validatorIndex, method: "Router.getInfo()", message: "GET /info" });
 
         return res.json(this.makeResponseData(200, this.nodeInfo, undefined));
     }
 
     private async getPeers(req: express.Request, res: express.Response) {
-        logger.http(`GET /peers`);
+        logger.http({ validatorIndex: this._validatorIndex, method: "Router.getPeers()", message: "GET /peers" });
 
         const data = this._peers.items.map((m) => {
             return { nodeId: m.nodeId, endpoint: m.endpoint, version: m.version, status: m.status };
@@ -239,7 +244,11 @@ export class Router {
     }
 
     private async postRequest(req: express.Request, res: express.Response) {
-        logger.http(`POST /request`);
+        logger.http({
+            validatorIndex: this._validatorIndex,
+            method: "Router.postRequest()",
+            message: "POST /request",
+        });
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -316,8 +325,6 @@ export class Router {
                     .connect(this.getSigner())
                     .addRequest(tx.requestId, emailHash, address, signature);
 
-                await contractTx.wait();
-
                 return res.json(
                     this.makeResponseData(200, {
                         requestId,
@@ -334,6 +341,11 @@ export class Router {
             }
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed save request";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.postRequest()",
+                message,
+            });
             return res.json(
                 this.makeResponseData(500, undefined, {
                     message,
@@ -343,7 +355,11 @@ export class Router {
     }
 
     private async postBroadcast(req: express.Request, res: express.Response) {
-        logger.http(`POST /broadcast`);
+        logger.http({
+            validatorIndex: this._validatorIndex,
+            method: "Router.postBroadcast()",
+            message: "POST /broadcast",
+        });
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -401,6 +417,11 @@ export class Router {
             return res.json(this.makeResponseData(200, {}));
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed broadcast request";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.postBroadcast()",
+                message,
+            });
             return res.json(
                 this.makeResponseData(500, undefined, {
                     message,
@@ -410,7 +431,11 @@ export class Router {
     }
 
     private async postSubmit(req: express.Request, res: express.Response) {
-        logger.http(`POST /submit`);
+        logger.http({
+            validatorIndex: this._validatorIndex,
+            method: "Router.postSubmit()",
+            message: "POST /submit",
+        });
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -445,6 +470,11 @@ export class Router {
                             return res.json(this.makeResponseData(200, "OK"));
                         } else {
                             await this._peers.broadcastSubmit(submitData);
+                            logger.warn({
+                                validatorIndex: this._validatorIndex,
+                                method: "Router.postSubmit()",
+                                message: `The authentication code is different. ${requestId}`,
+                            });
                             return res.json(
                                 this.makeResponseData(440, null, { message: "The authentication code is different." })
                             );
@@ -452,30 +482,60 @@ export class Router {
                     } else {
                         validation.status = EmailValidationStatus.EXPIRED;
                         await this._peers.broadcastSubmit(submitData);
+                        logger.warn({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.postSubmit()",
+                            message: `The authentication code is expired. ${requestId}`,
+                        });
                         return res.json(
                             this.makeResponseData(430, null, { message: "The authentication code is expired." })
                         );
                     }
                 } else if (validation.status === EmailValidationStatus.NONE) {
                     await this._peers.broadcastSubmit(submitData);
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.postSubmit()",
+                        message: `The email has not been sent. ${requestId}`,
+                    });
                     return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
                 } else if (validation.status === EmailValidationStatus.CONFIRMED) {
                     await this._peers.broadcastSubmit(submitData);
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.postSubmit()",
+                        message: `Processing has already been completed. ${requestId}`,
+                    });
                     return res.json(
                         this.makeResponseData(421, null, { message: "Processing has already been completed." })
                     );
                 } else if (validation.status === EmailValidationStatus.EXPIRED) {
                     await this._peers.broadcastSubmit(submitData);
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.postSubmit()",
+                        message: `The authentication code is expired. ${requestId}`,
+                    });
                     return res.json(
                         this.makeResponseData(422, null, { message: "The authentication code is expired." })
                     );
                 }
             } else {
                 await this._peers.broadcastSubmit(submitData);
+                logger.warn({
+                    validatorIndex: this._validatorIndex,
+                    method: "Router.postSubmit()",
+                    message: `No such request found. ${requestId}`,
+                });
                 return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
             }
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed submit";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.postSubmit()",
+                message,
+            });
             return res.json(
                 this.makeResponseData(500, undefined, {
                     message,
@@ -485,7 +545,11 @@ export class Router {
     }
 
     private async postBroadcastSubmit(req: express.Request, res: express.Response) {
-        logger.http(`POST /broadcastSubmit`);
+        logger.http({
+            validatorIndex: this._validatorIndex,
+            method: "Router.postBroadcastSubmit()",
+            message: "POST /broadcastSubmit",
+        });
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -533,32 +597,67 @@ export class Router {
                             validation.status = EmailValidationStatus.CONFIRMED;
                             return res.json(this.makeResponseData(200, "OK"));
                         } else {
+                            logger.warn({
+                                validatorIndex: this._validatorIndex,
+                                method: "Router.postBroadcastSubmit()",
+                                message: `The authentication code is different. ${requestId}`,
+                            });
                             return res.json(
                                 this.makeResponseData(440, null, { message: "The authentication code is different." })
                             );
                         }
                     } else {
                         validation.status = EmailValidationStatus.EXPIRED;
+                        logger.warn({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.postBroadcastSubmit()",
+                            message: `The authentication code is expired. ${requestId}`,
+                        });
                         return res.json(
                             this.makeResponseData(430, null, { message: "The authentication code is expired." })
                         );
                     }
                 } else if (validation.status === EmailValidationStatus.NONE) {
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.postBroadcastSubmit()",
+                        message: `The email has not been sent. ${requestId}`,
+                    });
                     return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
                 } else if (validation.status === EmailValidationStatus.CONFIRMED) {
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.postBroadcastSubmit()",
+                        message: `Processing has already been completed. ${requestId}`,
+                    });
                     return res.json(
                         this.makeResponseData(421, null, { message: "Processing has already been completed." })
                     );
                 } else if (validation.status === EmailValidationStatus.EXPIRED) {
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.postBroadcastSubmit()",
+                        message: `The authentication code is expired. ${requestId}`,
+                    });
                     return res.json(
                         this.makeResponseData(422, null, { message: "The authentication code is expired." })
                     );
                 }
             } else {
+                logger.warn({
+                    validatorIndex: this._validatorIndex,
+                    method: "Router.postBroadcastSubmit()",
+                    message: `No such request found. ${requestId}`,
+                });
                 return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
             }
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed broadcast submit";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.postBroadcastSubmit()",
+                message,
+            });
             return res.json(
                 this.makeResponseData(500, undefined, {
                     message,
@@ -568,7 +667,16 @@ export class Router {
     }
 
     private async voteAgreement(requestId: string, ballot: Ballot) {
-        await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId, ballot);
+        try {
+            await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId, ballot);
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "Error when calling contract";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.voteAgreement()",
+                message,
+            });
+        }
     }
 
     public async onWork() {
@@ -597,6 +705,15 @@ export class Router {
     }
 
     private async updateEndpointOnContract() {
-        await (await this.getContract()).connect(this.getSigner()).updateEndpoint(this.nodeInfo.endpoint);
+        try {
+            await (await this.getContract()).connect(this.getSigner()).updateEndpoint(this.nodeInfo.endpoint);
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "Error when calling contract";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.updateEndpointOnContract()",
+                message,
+            });
+        }
     }
 }

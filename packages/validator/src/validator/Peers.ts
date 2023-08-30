@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { ISubmitData, ITransaction, ValidatorNodeInfo } from "../types";
+import { logger } from "../common/Logger";
 
 /**
  * 피어의 상태코드
@@ -69,16 +70,40 @@ export class Peer implements IPeer {
     public async check(): Promise<boolean> {
         try {
             const response = await this.client.get("/info");
-            const info: ValidatorNodeInfo = response.data.data;
-            if (info.nodeId === this.nodeId) {
-                this.version = info.version;
-                this.status = PeerStatus.ACTIVE;
-                return true;
+            if (response.data.code === 200) {
+                const info: ValidatorNodeInfo = response.data.data;
+                if (info.nodeId === this.nodeId) {
+                    this.version = info.version;
+                    this.status = PeerStatus.ACTIVE;
+                    return true;
+                } else {
+                    logger.warn({
+                        validatorIndex: this.index,
+                        method: "Peer.check()",
+                        message: "The nodeId has been changed",
+                    });
+                    this.status = PeerStatus.ABNORMAL;
+                    return false;
+                }
             } else {
-                this.status = PeerStatus.ABNORMAL;
+                const message =
+                    response.data.error !== undefined && response.data.error.message !== undefined
+                        ? response.data.error.message
+                        : "";
+                logger.warn({
+                    validatorIndex: this.index,
+                    method: "Peer.check()",
+                    message: `The response is abnormal. - ${response.data.code} - ${message}`,
+                });
+                this.status = PeerStatus.INACTIVE;
                 return false;
             }
         } catch (e) {
+            logger.warn({
+                validatorIndex: this.index,
+                method: "Peer.check()",
+                message: `An error has occurred.`,
+            });
             this.status = PeerStatus.INACTIVE;
             return false;
         }
@@ -89,8 +114,25 @@ export class Peer implements IPeer {
      */
     public async broadcast(data: ITransaction): Promise<void> {
         try {
-            await this.client.post("/broadcast", data);
+            const response = await this.client.post("/broadcast", data);
+            if (response.data.code !== 200) {
+                const message =
+                    response.data.error !== undefined && response.data.error.message !== undefined
+                        ? response.data.error.message
+                        : "";
+                logger.warn({
+                    validatorIndex: this.index,
+                    method: "Peer.broadcast()",
+                    message: `The response is abnormal. - ${message}`,
+                });
+                this.status = PeerStatus.INACTIVE;
+            }
         } catch (e) {
+            logger.warn({
+                validatorIndex: this.index,
+                method: "Peer.broadcast()",
+                message: `An error has occurred.`,
+            });
             this.status = PeerStatus.INACTIVE;
         }
     }
@@ -100,8 +142,25 @@ export class Peer implements IPeer {
      */
     public async broadcastSubmit(data: ISubmitData): Promise<void> {
         try {
-            await this.client.post("/broadcastSubmit", data);
+            const response = await this.client.post("/broadcastSubmit", data);
+            if (response.data.code !== 200) {
+                const message =
+                    response.data.error !== undefined && response.data.error.message !== undefined
+                        ? response.data.error.message
+                        : "";
+                logger.warn({
+                    validatorIndex: this.index,
+                    method: "Peer.broadcastSubmit()",
+                    message: `The response is abnormal. - ${message}`,
+                });
+                this.status = PeerStatus.INACTIVE;
+            }
         } catch (e) {
+            logger.warn({
+                validatorIndex: this.index,
+                method: "Peer.broadcastSubmit()",
+                message: `An error has occurred.`,
+            });
             this.status = PeerStatus.INACTIVE;
         }
     }
