@@ -104,3 +104,10 @@ export interface IJob {
     };
     broadcastData?: ITransaction;
 }
+
+export enum AuthenticationMode {
+    NoEMailNoCode,
+    NoEMailKnownCode,
+    YesEMailKnownCode,
+    YesEMailUnknownCode,
+}

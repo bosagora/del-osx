@@ -97,22 +97,22 @@ export class NodeConfig implements IServerConfig {
 }
 
 export class ValidatorConfig implements IValidatorConfig {
-    public validator_key: string;
+    public validatorKey: string;
 
     constructor() {
         const defaults = ValidatorConfig.defaultValue();
 
-        this.validator_key = defaults.validator_key;
+        this.validatorKey = defaults.validatorKey;
     }
 
     public static defaultValue(): IValidatorConfig {
         return {
-            validator_key: process.env.VALIDATOR_KEY || "",
+            validatorKey: process.env.VALIDATOR_KEY || "",
         };
     }
 
     public readFromObject(config: IValidatorConfig) {
-        if (config.validator_key !== undefined) this.validator_key = config.validator_key;
+        if (config.validatorKey !== undefined) this.validatorKey = config.validatorKey;
     }
 }
 
@@ -166,7 +166,7 @@ export interface ILoggingConfig {
 }
 
 export interface IValidatorConfig {
-    validator_key: string;
+    validatorKey: string;
 }
 
 export interface IContractsConfig {

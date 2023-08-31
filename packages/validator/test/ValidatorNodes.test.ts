@@ -53,7 +53,7 @@ describe("Test of ValidatorNode", function () {
                 const config = new Config();
                 config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
                 config.contracts.linkCollectionAddress = linkCollectionContract.address;
-                config.validator.validator_key = validators[idx].privateKey;
+                config.validator.validatorKey = validators[idx].privateKey;
                 config.node.protocol = "http";
                 config.node.host = "0.0.0.0";
                 config.node.port = 7070 + idx;

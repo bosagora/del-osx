@@ -49,7 +49,7 @@ describe("Test of ValidatorNode", function () {
             config = new Config();
             config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
             config.contracts.linkCollectionAddress = linkCollectionContract.address;
-            config.validator.validator_key = validator1.privateKey;
+            config.validator.validatorKey = validator1.privateKey;
         });
 
         before("Create Validator Client", async () => {
