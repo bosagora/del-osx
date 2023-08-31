@@ -88,3 +88,19 @@ export enum Ballot {
     OPPOSITION,
     ABSTAINING,
 }
+
+export enum JobType {
+    REGISTER,
+    BROADCAST,
+    VOTE,
+}
+export interface IJob {
+    type: JobType;
+    requestId: string;
+    registerData?: {
+        emailHash: string;
+        address: string;
+        signature: string;
+    };
+    broadcastData?: ITransaction;
+}

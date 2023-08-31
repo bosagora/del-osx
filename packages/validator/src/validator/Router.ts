@@ -8,8 +8,10 @@ import {
     Ballot,
     EmailValidationStatus,
     IEmailValidation,
+    IJob,
     ISubmitData,
     ITransaction,
+    JobType,
     ValidatorNodeInfo,
 } from "../types";
 import { ContractUtils } from "../utils/ContractUtils";
@@ -46,6 +48,8 @@ export class Router {
 
     private readonly _emailSender: IEmailSender;
     private readonly _codeGenerator: ICodeGenerator;
+
+    private _jobList: IJob[] = [];
 
     constructor(
         validator: ValidatorNode,
@@ -304,31 +308,22 @@ export class Router {
                 signature: "",
             };
             tx.signature = await ContractUtils.signTx(this.getSigner(), tx);
-            this._validations.set(requestId, {
-                tx,
-                status: EmailValidationStatus.NONE,
-                sendCode: "",
-                receiveCode: "",
-                expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+
+            this.addJob({
+                type: JobType.REGISTER,
+                requestId,
+                registerData: {
+                    emailHash,
+                    address,
+                    signature,
+                },
+                broadcastData: tx,
             });
-            await this._peers.broadcast(tx);
-            const sendCode = this._codeGenerator.getCode();
-            await this._emailSender.send(this._validatorIndex, sendCode);
-            const validation = this._validations.get(requestId);
-            if (validation !== undefined) {
-                validation.sendCode = sendCode;
-                validation.status = EmailValidationStatus.SENT;
-            }
 
             try {
-                const contractTx = await (await this.getContract())
-                    .connect(this.getSigner())
-                    .addRequest(tx.requestId, emailHash, address, signature);
-
                 return res.json(
                     this.makeResponseData(200, {
                         requestId,
-                        contractTxHash: contractTx.hash,
                     })
                 );
             } catch (error: any) {
@@ -405,15 +400,12 @@ export class Router {
                 );
             }
 
-            const sendCode = this._codeGenerator.getCode();
-            await this._emailSender.send(this._validatorIndex, sendCode);
-            this._validations.set(tx.requestId, {
-                tx,
-                status: EmailValidationStatus.SENT,
-                sendCode,
-                receiveCode: "",
-                expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+            this.addJob({
+                type: JobType.BROADCAST,
+                requestId: tx.requestId,
+                broadcastData: tx,
             });
+
             return res.json(this.makeResponseData(200, {}));
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed broadcast request";
@@ -457,78 +449,9 @@ export class Router {
                 signature: "",
             };
             submitData.signature = await ContractUtils.signSubmit(this.getSigner(), submitData);
+            await this._peers.broadcastSubmit(submitData);
 
-            const validation = this._validations.get(requestId);
-            if (validation !== undefined) {
-                if (validation.status === EmailValidationStatus.SENT) {
-                    if (validation.expirationTimestamp > ContractUtils.getTimeStamp()) {
-                        validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
-                        if (validation.sendCode === validation.receiveCode) {
-                            await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
-                            validation.status = EmailValidationStatus.CONFIRMED;
-                            await this._peers.broadcastSubmit(submitData);
-                            return res.json(this.makeResponseData(200, "OK"));
-                        } else {
-                            await this._peers.broadcastSubmit(submitData);
-                            logger.warn({
-                                validatorIndex: this._validatorIndex,
-                                method: "Router.postSubmit()",
-                                message: `The authentication code is different. ${requestId}`,
-                            });
-                            return res.json(
-                                this.makeResponseData(440, null, { message: "The authentication code is different." })
-                            );
-                        }
-                    } else {
-                        validation.status = EmailValidationStatus.EXPIRED;
-                        await this._peers.broadcastSubmit(submitData);
-                        logger.warn({
-                            validatorIndex: this._validatorIndex,
-                            method: "Router.postSubmit()",
-                            message: `The authentication code is expired. ${requestId}`,
-                        });
-                        return res.json(
-                            this.makeResponseData(430, null, { message: "The authentication code is expired." })
-                        );
-                    }
-                } else if (validation.status === EmailValidationStatus.NONE) {
-                    await this._peers.broadcastSubmit(submitData);
-                    logger.warn({
-                        validatorIndex: this._validatorIndex,
-                        method: "Router.postSubmit()",
-                        message: `The email has not been sent. ${requestId}`,
-                    });
-                    return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
-                } else if (validation.status === EmailValidationStatus.CONFIRMED) {
-                    await this._peers.broadcastSubmit(submitData);
-                    logger.warn({
-                        validatorIndex: this._validatorIndex,
-                        method: "Router.postSubmit()",
-                        message: `Processing has already been completed. ${requestId}`,
-                    });
-                    return res.json(
-                        this.makeResponseData(421, null, { message: "Processing has already been completed." })
-                    );
-                } else if (validation.status === EmailValidationStatus.EXPIRED) {
-                    await this._peers.broadcastSubmit(submitData);
-                    logger.warn({
-                        validatorIndex: this._validatorIndex,
-                        method: "Router.postSubmit()",
-                        message: `The authentication code is expired. ${requestId}`,
-                    });
-                    return res.json(
-                        this.makeResponseData(422, null, { message: "The authentication code is expired." })
-                    );
-                }
-            } else {
-                await this._peers.broadcastSubmit(submitData);
-                logger.warn({
-                    validatorIndex: this._validatorIndex,
-                    method: "Router.postSubmit()",
-                    message: `No such request found. ${requestId}`,
-                });
-                return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
-            }
+            return this.processSubmit(requestId, code, res);
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed submit";
             logger.error({
@@ -587,70 +510,7 @@ export class Router {
                 );
             }
 
-            const validation = this._validations.get(requestId);
-            if (validation !== undefined) {
-                if (validation.status === EmailValidationStatus.SENT) {
-                    if (validation.expirationTimestamp > ContractUtils.getTimeStamp()) {
-                        validation.receiveCode = code.substring(this._validatorIndex * 2, this._validatorIndex * 2 + 2);
-                        if (validation.sendCode === validation.receiveCode) {
-                            await this.voteAgreement(validation.tx.requestId, Ballot.AGREEMENT);
-                            validation.status = EmailValidationStatus.CONFIRMED;
-                            return res.json(this.makeResponseData(200, "OK"));
-                        } else {
-                            logger.warn({
-                                validatorIndex: this._validatorIndex,
-                                method: "Router.postBroadcastSubmit()",
-                                message: `The authentication code is different. ${requestId}`,
-                            });
-                            return res.json(
-                                this.makeResponseData(440, null, { message: "The authentication code is different." })
-                            );
-                        }
-                    } else {
-                        validation.status = EmailValidationStatus.EXPIRED;
-                        logger.warn({
-                            validatorIndex: this._validatorIndex,
-                            method: "Router.postBroadcastSubmit()",
-                            message: `The authentication code is expired. ${requestId}`,
-                        });
-                        return res.json(
-                            this.makeResponseData(430, null, { message: "The authentication code is expired." })
-                        );
-                    }
-                } else if (validation.status === EmailValidationStatus.NONE) {
-                    logger.warn({
-                        validatorIndex: this._validatorIndex,
-                        method: "Router.postBroadcastSubmit()",
-                        message: `The email has not been sent. ${requestId}`,
-                    });
-                    return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
-                } else if (validation.status === EmailValidationStatus.CONFIRMED) {
-                    logger.warn({
-                        validatorIndex: this._validatorIndex,
-                        method: "Router.postBroadcastSubmit()",
-                        message: `Processing has already been completed. ${requestId}`,
-                    });
-                    return res.json(
-                        this.makeResponseData(421, null, { message: "Processing has already been completed." })
-                    );
-                } else if (validation.status === EmailValidationStatus.EXPIRED) {
-                    logger.warn({
-                        validatorIndex: this._validatorIndex,
-                        method: "Router.postBroadcastSubmit()",
-                        message: `The authentication code is expired. ${requestId}`,
-                    });
-                    return res.json(
-                        this.makeResponseData(422, null, { message: "The authentication code is expired." })
-                    );
-                }
-            } else {
-                logger.warn({
-                    validatorIndex: this._validatorIndex,
-                    method: "Router.postBroadcastSubmit()",
-                    message: `No such request found. ${requestId}`,
-                });
-                return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
-            }
+            return this.processSubmit(requestId, code, res);
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed broadcast submit";
             logger.error({
@@ -663,6 +523,114 @@ export class Router {
                     message,
                 })
             );
+        }
+    }
+
+    private async processSendEmail(requestId: string) {
+        const validation = this._validations.get(requestId);
+        if (validation !== undefined && validation.status === EmailValidationStatus.NONE) {
+            const sendCode = this._codeGenerator.getCode();
+            await this._emailSender.send(this._validatorIndex, sendCode);
+            validation.sendCode = sendCode;
+            validation.status = EmailValidationStatus.SENT;
+        }
+    }
+
+    private async processSubmit(requestId: string, receiveCode: string, res: express.Response) {
+        const validation = this._validations.get(requestId);
+        if (validation !== undefined) {
+            if (validation.status === EmailValidationStatus.SENT) {
+                if (validation.expirationTimestamp > ContractUtils.getTimeStamp()) {
+                    validation.receiveCode = receiveCode.substring(
+                        this._validatorIndex * 2,
+                        this._validatorIndex * 2 + 2
+                    );
+                    if (validation.sendCode === validation.receiveCode) {
+                        this.addJob({
+                            type: JobType.VOTE,
+                            requestId,
+                        });
+                        return res.json(this.makeResponseData(200, "OK"));
+                    } else {
+                        logger.warn({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.processSubmit()",
+                            message: `The authentication code is different. ${requestId}`,
+                        });
+                        return res.json(
+                            this.makeResponseData(440, null, { message: "The authentication code is different." })
+                        );
+                    }
+                } else {
+                    validation.status = EmailValidationStatus.EXPIRED;
+                    logger.warn({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.processSubmit()",
+                        message: `The authentication code is expired. ${requestId}`,
+                    });
+                    return res.json(
+                        this.makeResponseData(430, null, { message: "The authentication code is expired." })
+                    );
+                }
+            } else if (validation.status === EmailValidationStatus.NONE) {
+                logger.warn({
+                    validatorIndex: this._validatorIndex,
+                    method: "Router.processSubmit()",
+                    message: `The email has not been sent. ${requestId}`,
+                });
+                return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
+            } else if (validation.status === EmailValidationStatus.CONFIRMED) {
+                logger.warn({
+                    validatorIndex: this._validatorIndex,
+                    method: "Router.processSubmit()",
+                    message: `Processing has already been completed. ${requestId}`,
+                });
+                return res.json(
+                    this.makeResponseData(421, null, { message: "Processing has already been completed." })
+                );
+            } else if (validation.status === EmailValidationStatus.EXPIRED) {
+                logger.warn({
+                    validatorIndex: this._validatorIndex,
+                    method: "Router.processSubmit()",
+                    message: `The authentication code is expired. ${requestId}`,
+                });
+                return res.json(this.makeResponseData(422, null, { message: "The authentication code is expired." }));
+            }
+        } else {
+            logger.warn({
+                validatorIndex: this._validatorIndex,
+                method: "Router.processSubmit()",
+                message: `No such request found. ${requestId}`,
+            });
+            return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
+        }
+    }
+
+    private async updateEndpointOnContract() {
+        try {
+            await (await this.getContract()).connect(this.getSigner()).updateEndpoint(this.nodeInfo.endpoint);
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "Error when calling contract";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.updateEndpointOnContract()",
+                message,
+            });
+        }
+    }
+
+    private async addRequest(requestId: string, emailHash: string, address: string, signature: string) {
+        try {
+            await (await this.getContract())
+                .connect(this.getSigner())
+                .addRequest(requestId, emailHash, address, signature);
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "Error when saving a request to the contract.";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.addRequest()",
+                message,
+            });
         }
     }
 
@@ -695,25 +663,83 @@ export class Router {
             this._initialized = true;
         }
 
+        const job = this.getJob();
+        if (job !== undefined) {
+            switch (job.type) {
+                case JobType.REGISTER:
+                    logger.info({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.onWork()",
+                        message: `JobType.REGISTER ${job.requestId}`,
+                    });
+                    if (job.registerData !== undefined && job.broadcastData !== undefined) {
+                        await this.addRequest(
+                            job.requestId,
+                            job.registerData.emailHash,
+                            job.registerData.address,
+                            job.registerData.signature
+                        );
+                        await this._peers.broadcast(job.broadcastData);
+
+                        this._validations.set(job.requestId, {
+                            tx: job.broadcastData,
+                            status: EmailValidationStatus.NONE,
+                            sendCode: "",
+                            receiveCode: "",
+                            expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+                        });
+
+                        await this.processSendEmail(job.requestId);
+                    }
+                    break;
+
+                case JobType.BROADCAST:
+                    logger.info({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.onWork()",
+                        message: `JobType.BROADCAST ${job.requestId}`,
+                    });
+                    if (job.broadcastData !== undefined) {
+                        this._validations.set(job.requestId, {
+                            tx: job.broadcastData,
+                            status: EmailValidationStatus.NONE,
+                            sendCode: "",
+                            receiveCode: "",
+                            expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+                        });
+
+                        await this.processSendEmail(job.requestId);
+                    }
+                    break;
+
+                case JobType.VOTE:
+                    logger.info({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.onWork()",
+                        message: `JobType.VOTE ${job.requestId}`,
+                    });
+                    await this.voteAgreement(job.requestId, Ballot.AGREEMENT);
+                    const validation = this._validations.get(job.requestId);
+                    if (validation !== undefined) {
+                        validation.status = EmailValidationStatus.CONFIRMED;
+                    }
+                    break;
+            }
+        }
+
         const old_period = Math.floor(this._oldTimeStamp / ValidatorNode.INTERVAL_SECONDS);
         if (old_period !== this._periodNumber) {
-            await this._peers.check();
             await this.makePeers();
-            /// TODO 진행이 되지 않는 요청건이 있는지 검사한다
+            await this._peers.check();
         }
         this._oldTimeStamp = currentTime;
     }
 
-    private async updateEndpointOnContract() {
-        try {
-            await (await this.getContract()).connect(this.getSigner()).updateEndpoint(this.nodeInfo.endpoint);
-        } catch (e: any) {
-            const message = e.message !== undefined ? e.message : "Error when calling contract";
-            logger.error({
-                validatorIndex: this._validatorIndex,
-                method: "Router.updateEndpointOnContract()",
-                message,
-            });
-        }
+    private addJob(job: IJob) {
+        this._jobList.push(job);
+    }
+
+    private getJob(): IJob | undefined {
+        return this._jobList.shift();
     }
 }

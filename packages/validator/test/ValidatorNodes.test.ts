@@ -18,7 +18,7 @@ import URI from "urijs";
 chai.use(solidity);
 
 describe("Test of ValidatorNode", function () {
-    this.timeout(1000 * 60 * 5);
+    this.timeout(60 * 1000);
     const provider = hre.waffle.provider;
     const [deployer, validator1, validator2, validator3, user1, user2, user3] = provider.getWallets();
 
@@ -155,7 +155,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Wait", async () => {
-            await delay(500);
+            await delay(3000);
         });
 
         it("Submit", async () => {
@@ -165,7 +165,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Wait", async () => {
-            await delay(500);
+            await delay(3000);
         });
 
         it("Check link data", async () => {
