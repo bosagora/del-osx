@@ -5,6 +5,7 @@ import { GasPriceManager } from "../contract/GasPriceManager";
 import { ICodeGenerator } from "../delegator/CodeGenerator";
 import { IEmailSender } from "../delegator/EMailSender";
 import {
+    AuthenticationMode,
     Ballot,
     EmailValidationStatus,
     IEmailValidation,
@@ -140,6 +141,14 @@ export class Router {
                 }
             }
         }
+
+        if (
+            this._config.validator.authenticationMode === AuthenticationMode.NoEMailKnownCode ||
+            this._config.validator.authenticationMode === AuthenticationMode.YesEMailKnownCode
+        ) {
+            this._codeGenerator.setValue(this._validatorIndex);
+        }
+
         logger.info({
             validatorIndex: this._validatorIndex,
             method: "Router.makePeers()",
@@ -691,6 +700,15 @@ export class Router {
 
                         await this.processSendEmail(job.requestId);
                     }
+
+                    if (this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode) {
+                        setTimeout(() => {
+                            this.addJob({
+                                type: JobType.VOTE,
+                                requestId: job.requestId,
+                            });
+                        }, 3000);
+                    }
                     break;
 
                 case JobType.BROADCAST:
@@ -709,6 +727,14 @@ export class Router {
                         });
 
                         await this.processSendEmail(job.requestId);
+                    }
+                    if (this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode) {
+                        setTimeout(() => {
+                            this.addJob({
+                                type: JobType.VOTE,
+                                requestId: job.requestId,
+                            });
+                        }, 3000);
                     }
                     break;
 

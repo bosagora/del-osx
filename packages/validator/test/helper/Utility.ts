@@ -1,32 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import { Config } from "../../src/common/Config";
-import { ICodeGenerator } from "../../src/delegator/CodeGenerator";
-import { IEmailSender } from "../../src/delegator/EMailSender";
 import { handleNetworkError } from "../../src/network/ErrorTypes";
 import { ValidatorNode } from "../../src/validator/ValidatorNode";
 
-export class TestEMailSender implements IEmailSender {
-    public async send(validatorIndex: number, code: string): Promise<boolean> {
-        return true;
-    }
-}
-
-export class TestCodeGenerator implements ICodeGenerator {
-    private code: number;
-    constructor(value: number) {
-        this.code = value % 100;
-    }
-
-    public getCode(): string {
-        return this.code.toString().padStart(2, "0");
-    }
-}
-
-export class TestValidatorNode extends ValidatorNode {
-    constructor(config: Config, code: number) {
-        super(config, new TestEMailSender(), new TestCodeGenerator(code));
-    }
-}
+export class TestValidatorNode extends ValidatorNode {}
 
 export class TestClient {
     private client: AxiosInstance;

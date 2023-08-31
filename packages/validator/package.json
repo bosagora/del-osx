@@ -17,7 +17,9 @@
         "formatting:check": "prettier '**/*.{json,sol,ts,js,md}' -c",
         "formatting:write": "prettier '**/*.{json,sol,ts,js,md}' --write",
         "test:ValidatorNode": "NODE_ENV=test hardhat test test/ValidatorNode.test.ts",
-        "test:ValidatorNodes": "NODE_ENV=test hardhat test test/ValidatorNodes.test.ts"
+        "test:ValidatorNodesNoEMailNoCode": "NODE_ENV=test hardhat test test/ValidatorNodesNoEMailNoCode.test.ts",
+        "test:ValidatorNodesNoEMailKnownCode": "NODE_ENV=test hardhat test test/ValidatorNodesNoEMailKnownCode.test.ts",
+        "test:ValidatorNodesYesEMailKnownCode": "NODE_ENV=test hardhat test test/ValidatorNodesYesEMailKnownCode.test.ts"
     },
     "repository": {
         "type": "git",

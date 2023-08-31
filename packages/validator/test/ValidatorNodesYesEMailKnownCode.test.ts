@@ -1,5 +1,5 @@
 import { Config } from "../src/common/Config";
-import { ValidatorNodeInfo } from "../src/types";
+import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { PeerStatus } from "../src/validator/Peers";
 import { ValidatorNode } from "../src/validator/ValidatorNode";
@@ -17,7 +17,7 @@ import URI from "urijs";
 
 chai.use(solidity);
 
-describe("Test of ValidatorNode", function () {
+describe("Test of ValidatorNode - YesEMailKnownCode", function () {
     this.timeout(60 * 1000);
     const provider = hre.waffle.provider;
     const [deployer, validator1, validator2, validator3, user1, user2, user3] = provider.getWallets();
@@ -54,6 +54,7 @@ describe("Test of ValidatorNode", function () {
                 config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
                 config.contracts.linkCollectionAddress = linkCollectionContract.address;
                 config.validator.validatorKey = validators[idx].privateKey;
+                config.validator.authenticationMode = AuthenticationMode.YesEMailKnownCode;
                 config.node.protocol = "http";
                 config.node.host = "0.0.0.0";
                 config.node.port = 7070 + idx;
@@ -68,7 +69,7 @@ describe("Test of ValidatorNode", function () {
         before("Create Validator Nodes", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
                 validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
-                validatorNodes.push(new TestValidatorNode(configs[idx], idx));
+                validatorNodes.push(new TestValidatorNode(configs[idx]));
             }
         });
 

@@ -98,21 +98,25 @@ export class NodeConfig implements IServerConfig {
 
 export class ValidatorConfig implements IValidatorConfig {
     public validatorKey: string;
+    public authenticationMode: number;
 
     constructor() {
         const defaults = ValidatorConfig.defaultValue();
 
         this.validatorKey = defaults.validatorKey;
+        this.authenticationMode = defaults.authenticationMode;
     }
 
     public static defaultValue(): IValidatorConfig {
         return {
             validatorKey: process.env.VALIDATOR_KEY || "",
+            authenticationMode: 3,
         };
     }
 
     public readFromObject(config: IValidatorConfig) {
         if (config.validatorKey !== undefined) this.validatorKey = config.validatorKey;
+        if (config.authenticationMode !== undefined) this.authenticationMode = config.authenticationMode;
     }
 }
 
@@ -167,6 +171,7 @@ export interface ILoggingConfig {
 
 export interface IValidatorConfig {
     validatorKey: string;
+    authenticationMode: number;
 }
 
 export interface IContractsConfig {
