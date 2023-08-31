@@ -10,4 +10,5 @@ contracts:
   linkCollectionAddress : ${LINK_COLLECTION_ADDRESS}
 
 validator:
-  validator_key: ${VALIDATOR_KEY}
+  validatorKey: ${VALIDATOR_KEY}
+

@@ -63,7 +63,7 @@ export class Router {
         this._peers = peers;
         this._emailSender = emailSender;
         this._codeGenerator = codeGenerator;
-        this._wallet = new Wallet(this._config.validator.validator_key);
+        this._wallet = new Wallet(this._config.validator.validatorKey);
         this._validatorIndex = -1;
 
         const host = this._config.node.external !== "" ? this._config.node.external : ip.address();
