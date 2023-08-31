@@ -2,7 +2,7 @@ import { Config } from "../src/common/Config";
 import { ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { LinkCollection } from "../typechain-types";
-import { TestClient, TestValidatorNode } from "./helper/Utility";
+import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
 
 import chai, { expect } from "chai";
 import { solidity } from "ethereum-waffle";
@@ -16,7 +16,7 @@ import URI from "urijs";
 chai.use(solidity);
 
 describe("Test of ValidatorNode", function () {
-    this.timeout(1000 * 60 * 5);
+    this.timeout(60 * 1000);
     const provider = hre.waffle.provider;
     const [deployer, validator1, user1, user2, user3] = provider.getWallets();
 
@@ -74,6 +74,7 @@ describe("Test of ValidatorNode", function () {
             assert.strictEqual(nodeInfo.endpoint, `${config.node.protocol}://${ip.address()}:${config.node.port}`);
         });
 
+        let requestId = "";
         it("Add link data", async () => {
             const nonce = await linkCollectionContract.nonceOf(users[0].address);
             const signature = await ContractUtils.signRequestData(users[0], emails[0], nonce);
@@ -87,7 +88,15 @@ describe("Test of ValidatorNode", function () {
             assert.deepStrictEqual(response.status, 200);
             assert.deepStrictEqual(response.data.code, 200);
             assert(response.data.data.requestId !== undefined);
-            await linkCollectionContract.connect(validator1).voteRequest(response.data.data.requestId, 1);
+            requestId = response.data.data.requestId;
+        });
+
+        it("Wait", async () => {
+            await delay(3000);
+        });
+
+        it("Vote", async () => {
+            await linkCollectionContract.connect(validator1).voteRequest(requestId, 1);
         });
 
         it("Check link data", async () => {
