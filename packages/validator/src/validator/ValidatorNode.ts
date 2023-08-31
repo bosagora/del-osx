@@ -1,6 +1,6 @@
 import { Config } from "../common/Config";
-import { CodeGenerator, ICodeGenerator } from "../delegator/CodeGenerator";
-import { EMailSender, IEmailSender } from "../delegator/EMailSender";
+import { CodeGenerator, FixedCodeGenerator, ICodeGenerator } from "../delegator/CodeGenerator";
+import { EMailNoSender, EMailSender, IEmailSender } from "../delegator/EMailSender";
 import { Peer, Peers } from "./Peers";
 import { Router } from "./Router";
 import { Worker } from "./Worker";
@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
 import http from "http";
+import { AuthenticationMode } from "../types";
 
 export class ValidatorNode {
     public static INIT_WAITING_SECONDS: number = 2;
@@ -24,14 +25,26 @@ export class ValidatorNode {
     private readonly _emailSender: IEmailSender;
     private readonly _codeGenerator: ICodeGenerator;
 
-    constructor(config: Config, emailSender?: IEmailSender, codeGenerator?: ICodeGenerator) {
+    constructor(config: Config) {
         this._app = express();
         this._config = config;
         this._peers = new Peers();
-        if (emailSender !== undefined) this._emailSender = emailSender;
-        else this._emailSender = new EMailSender();
-        if (codeGenerator !== undefined) this._codeGenerator = codeGenerator;
-        else this._codeGenerator = new CodeGenerator();
+
+        if (
+            this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode ||
+            this._config.validator.authenticationMode === AuthenticationMode.NoEMailKnownCode
+        ) {
+            this._emailSender = new EMailNoSender();
+        } else {
+            this._emailSender = new EMailSender();
+        }
+
+        if (this._config.validator.authenticationMode === AuthenticationMode.YesEMailUnknownCode) {
+            this._codeGenerator = new CodeGenerator();
+        } else {
+            this._codeGenerator = new FixedCodeGenerator(0);
+        }
+
         this._router = new Router(this, this._config, this._peers, this._emailSender, this._codeGenerator);
         this._worker = new Worker("*/1 * * * * *", this, this._router);
     }

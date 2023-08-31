@@ -11,4 +11,4 @@ contracts:
 
 validator:
   validatorKey: ${VALIDATOR_KEY}
-
+  authenticationMode: ${AUTHENTICATION_MODE}
