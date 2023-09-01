@@ -74,6 +74,12 @@ export class Router {
             version: "v1.0.0",
         };
         this._startTimeStamp = ContractUtils.getTimeStamp();
+
+        logger.info({
+            validatorIndex: "n",
+            method: "Router.constructor()",
+            message: `nodeId: ${this.nodeInfo.nodeId}, endpoint: ${this.nodeInfo.endpoint}`,
+        });
     }
 
     private async getContract(): Promise<LinkCollection> {
@@ -117,14 +123,40 @@ export class Router {
             const index = item.index.toNumber();
             const endpoint = item.endpoint;
             if (this._wallet.address.toLowerCase() === nodeId) {
-                this._validatorIndex = index;
+                if (this._validatorIndex !== index) {
+                    this._validatorIndex = index;
+                    if (
+                        this._config.validator.authenticationMode === AuthenticationMode.NoEMailKnownCode ||
+                        this._config.validator.authenticationMode === AuthenticationMode.YesEMailKnownCode
+                    ) {
+                        this._codeGenerator.setValue(this._validatorIndex);
+                    }
+                    logger.info({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.makePeers()",
+                        message: `Validator - nodeId: ${this.nodeInfo.nodeId}, index: ${this._validatorIndex}, endpoint: ${this.nodeInfo.endpoint}`,
+                    });
+                }
             } else {
                 const oldPeer = this._peers.items.find((m) => m.nodeId === nodeId);
                 if (oldPeer !== undefined) {
-                    oldPeer.endpoint = endpoint;
-                    oldPeer.index = index;
+                    if (oldPeer.endpoint !== endpoint || oldPeer.index !== index) {
+                        oldPeer.endpoint = endpoint;
+                        oldPeer.index = index;
+                        logger.info({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.makePeers()",
+                            message: `Peer - nodeId: ${oldPeer.nodeId}, index: ${oldPeer.index}, endpoint: ${oldPeer.endpoint}`,
+                        });
+                    }
                 } else {
-                    this._peers.items.push(new Peer(nodeId, index, endpoint, ""));
+                    const peer = new Peer(nodeId, index, endpoint, "");
+                    this._peers.items.push(peer);
+                    logger.info({
+                        validatorIndex: this._validatorIndex,
+                        method: "Router.makePeers()",
+                        message: `Peer - nodeId: ${peer.nodeId}, index: ${peer.index}, endpoint: ${peer.endpoint}`,
+                    });
                 }
             }
         }
@@ -141,19 +173,6 @@ export class Router {
                 }
             }
         }
-
-        if (
-            this._config.validator.authenticationMode === AuthenticationMode.NoEMailKnownCode ||
-            this._config.validator.authenticationMode === AuthenticationMode.YesEMailKnownCode
-        ) {
-            this._codeGenerator.setValue(this._validatorIndex);
-        }
-
-        logger.info({
-            validatorIndex: this._validatorIndex,
-            method: "Router.makePeers()",
-            message: "Completed making of peer's information.",
-        });
     }
 
     public registerRoutes() {
