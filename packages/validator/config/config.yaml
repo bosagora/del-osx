@@ -2,6 +2,7 @@ node:
   host: ${NODE_HOST}
   port: ${NODE_PORT}
   external: ${NODE_EXTERNAL_IP}
+  delayLoading: ${NODE_DELAY_LOADING}
 
 logging:
   level: ${LOGGING_LEVEL}

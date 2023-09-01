@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { Config } from "./common/Config";
 import { logger } from "./common/Logger";
+import { Utils } from "./utils/Utils";
 import { ValidatorNode } from "./validator/ValidatorNode";
 
 dotenv.config({ path: "env/.env" });
@@ -25,6 +26,8 @@ async function main() {
         method: "main",
         message: `port: ${config.node.port}`,
     });
+
+    if (config.node.delayLoading > 0) await Utils.delay(config.node.delayLoading);
 
     validator = new ValidatorNode(config);
     return validator.start().catch((error: any) => {

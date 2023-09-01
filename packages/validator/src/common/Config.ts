@@ -61,11 +61,13 @@ export class Config implements IConfig {
     }
 }
 
-export class NodeConfig implements IServerConfig {
+export class NodeConfig implements INodeConfig {
     public protocol: string;
     public host: string;
     public port: number;
     public external: string;
+    public delayLoading: number;
+
     constructor(host?: string, port?: number) {
         const conf = extend(true, {}, NodeConfig.defaultValue());
         extend(true, conf, { host, port });
@@ -74,18 +76,20 @@ export class NodeConfig implements IServerConfig {
         this.host = conf.host;
         this.port = conf.port;
         this.external = conf.external;
+        this.delayLoading = conf.delayLoading;
     }
 
-    public static defaultValue(): IServerConfig {
+    public static defaultValue(): INodeConfig {
         return {
             protocol: "http",
             host: "127.0.0.1",
             port: 3000,
             external: "",
+            delayLoading: 0,
         };
     }
 
-    public readFromObject(config: IServerConfig) {
+    public readFromObject(config: INodeConfig) {
         const conf = extend(true, {}, NodeConfig.defaultValue());
         extend(true, conf, config);
 
@@ -93,6 +97,7 @@ export class NodeConfig implements IServerConfig {
         this.host = conf.host;
         this.port = conf.port;
         this.external = conf.external;
+        this.delayLoading = conf.delayLoading;
     }
 }
 
@@ -158,11 +163,12 @@ export class LoggingConfig implements ILoggingConfig {
     }
 }
 
-export interface IServerConfig {
+export interface INodeConfig {
     protocol: string;
     host: string;
     port: number;
     external: string;
+    delayLoading: number;
 }
 
 export interface ILoggingConfig {
@@ -179,7 +185,7 @@ export interface IContractsConfig {
 }
 
 export interface IConfig {
-    node: IServerConfig;
+    node: INodeConfig;
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;

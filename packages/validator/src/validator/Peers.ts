@@ -98,11 +98,12 @@ export class Peer implements IPeer {
                 this.status = PeerStatus.INACTIVE;
                 return false;
             }
-        } catch (e) {
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "An error has occurred.";
             logger.warn({
                 validatorIndex: this.index,
                 method: "Peer.check()",
-                message: `An error has occurred.`,
+                message,
             });
             this.status = PeerStatus.INACTIVE;
             return false;
@@ -127,11 +128,12 @@ export class Peer implements IPeer {
                 });
                 this.status = PeerStatus.INACTIVE;
             }
-        } catch (e) {
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "An error has occurred.";
             logger.warn({
                 validatorIndex: this.index,
                 method: "Peer.broadcast()",
-                message: `An error has occurred.`,
+                message,
             });
             this.status = PeerStatus.INACTIVE;
         }
@@ -155,11 +157,12 @@ export class Peer implements IPeer {
                 });
                 this.status = PeerStatus.INACTIVE;
             }
-        } catch (e) {
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "An error has occurred.";
             logger.warn({
                 validatorIndex: this.index,
                 method: "Peer.broadcastSubmit()",
-                message: `An error has occurred.`,
+                message,
             });
             this.status = PeerStatus.INACTIVE;
         }

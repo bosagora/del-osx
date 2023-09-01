@@ -72,6 +72,12 @@ export class Utils {
         if (value.substring(0, 2).toLowerCase() === "0x") return value.substring(2);
         else return value;
     }
+
+    public static delay(interval: number): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            setTimeout(resolve, interval);
+        });
+    }
 }
 
 /**
