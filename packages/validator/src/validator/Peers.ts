@@ -80,7 +80,7 @@ export class Peer implements IPeer {
                     logger.warn({
                         validatorIndex: this.index,
                         method: "Peer.check()",
-                        message: "The nodeId has been changed",
+                        message: `The nodeId has been changed(${this.nodeId} -> ${info.nodeId})`,
                     });
                     this.status = PeerStatus.ABNORMAL;
                     return false;
