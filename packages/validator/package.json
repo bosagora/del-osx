@@ -10,6 +10,7 @@
         "test": "hardhat test",
         "clean": "hardhat clean",
         "build": "hardhat compile",
+        "start": "NODE_ENV=production hardhat run src/main.ts --network production_net",
         "start:hardhat": "NODE_ENV=production hardhat run src/main.ts",
         "start:mainnet": "NODE_ENV=production hardhat run src/main.ts --network bosagora_mainnet",
         "start:testnet": "NODE_ENV=production hardhat run src/main.ts --network bosagora_testnet",
