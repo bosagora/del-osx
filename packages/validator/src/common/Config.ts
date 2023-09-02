@@ -14,11 +14,14 @@ export class Config implements IConfig {
 
     public contracts: ContractsConfig;
 
+    public smtp: SMTPConfig;
+
     constructor() {
         this.node = new NodeConfig();
         this.logging = new LoggingConfig();
         this.validator = new ValidatorConfig();
         this.contracts = new ContractsConfig();
+        this.smtp = new SMTPConfig();
     }
 
     public static createWithArgument(): Config {
@@ -58,6 +61,7 @@ export class Config implements IConfig {
         this.logging.readFromObject(cfg.logging);
         this.validator.readFromObject(cfg.validator);
         this.contracts.readFromObject(cfg.contracts);
+        this.smtp.readFromObject(cfg.smtp);
     }
 }
 
@@ -163,6 +167,36 @@ export class LoggingConfig implements ILoggingConfig {
     }
 }
 
+export class SMTPConfig implements ISMTPConfig {
+    public host: string;
+    public port: number;
+    public account: string;
+    public password: string;
+
+    constructor() {
+        const defaults = SMTPConfig.defaultValue();
+        this.host = defaults.host;
+        this.port = defaults.port;
+        this.account = defaults.account;
+        this.password = defaults.password;
+    }
+
+    public static defaultValue(): ISMTPConfig {
+        return {
+            host: process.env.SMTP_HOST || "",
+            port: Number(process.env.SMTP_PORT || "465"),
+            account: process.env.SMTP_ACCOUNT || "",
+            password: process.env.SMTP_PASSWORD || "",
+        };
+    }
+
+    public readFromObject(config: ISMTPConfig) {
+        if (config.host !== undefined) this.host = config.host;
+        if (config.port !== undefined) this.port = config.port;
+        if (config.account !== undefined) this.account = config.account;
+        if (config.password !== undefined) this.password = config.password;
+    }
+}
 export interface INodeConfig {
     protocol: string;
     host: string;
@@ -184,9 +218,17 @@ export interface IContractsConfig {
     linkCollectionAddress: string;
 }
 
+export interface ISMTPConfig {
+    host: string;
+    port: number;
+    account: string;
+    password: string;
+}
+
 export interface IConfig {
     node: INodeConfig;
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;
+    smtp: ISMTPConfig;
 }

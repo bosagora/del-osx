@@ -558,7 +558,12 @@ export class Router {
         const validation = this._validations.get(requestId);
         if (validation !== undefined && validation.status === EmailValidationStatus.NONE) {
             const sendCode = this._codeGenerator.getCode();
-            await this._emailSender.send(this._validatorIndex, sendCode);
+            await this._emailSender.send(
+                this._validatorIndex,
+                this._validators.size,
+                sendCode,
+                validation.tx.request.email
+            );
             validation.sendCode = sendCode;
             validation.status = EmailValidationStatus.SENT;
         }
@@ -714,7 +719,7 @@ export class Router {
                             status: EmailValidationStatus.NONE,
                             sendCode: "",
                             receiveCode: "",
-                            expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+                            expirationTimestamp: ContractUtils.getTimeStamp() + 5 * 60,
                         });
 
                         await this.processSendEmail(job.requestId);
@@ -742,7 +747,7 @@ export class Router {
                             status: EmailValidationStatus.NONE,
                             sendCode: "",
                             receiveCode: "",
-                            expirationTimestamp: ContractUtils.getTimeStamp() + 3600,
+                            expirationTimestamp: ContractUtils.getTimeStamp() + 5 * 60,
                         });
 
                         await this.processSendEmail(job.requestId);

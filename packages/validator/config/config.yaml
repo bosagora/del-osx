@@ -13,3 +13,9 @@ contracts:
 validator:
   validatorKey: ${VALIDATOR_KEY}
   authenticationMode: ${AUTHENTICATION_MODE}
+
+smtp:
+  host: ${SMTP_HOST}
+  port: ${SMTP_PORT}
+  account: ${SMTP_ACCOUNT}
+  password: ${SMTP_PASSWORD}
