@@ -36,7 +36,7 @@ export class ValidatorNode {
         ) {
             this._emailSender = new EMailNoSender();
         } else {
-            this._emailSender = new EMailSender();
+            this._emailSender = new EMailSender(this._config);
         }
 
         if (this._config.validator.authenticationMode === AuthenticationMode.YesEMailUnknownCode) {
