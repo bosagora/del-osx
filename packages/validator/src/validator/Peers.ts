@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
-import { ISubmitData, ITransaction, ValidatorNodeInfo } from "../types";
+import URI from "urijs";
 import { logger } from "../common/Logger";
+import { ISubmitData, ITransaction, ValidatorNodeInfo } from "../types";
 
 /**
  * 피어의 상태코드
@@ -59,17 +60,17 @@ export class Peer implements IPeer {
         this.endpoint = endpoint;
         this.version = version;
         this.status = PeerStatus.UNKNOWN;
-        this.client = axios.create({
-            baseURL: endpoint,
-        });
+        this.client = axios.create();
     }
 
     /**
      * 피어의 정보를 조회한다.
      */
     public async check(): Promise<boolean> {
+        if (this.endpoint === "") return false;
         try {
-            const response = await this.client.get("/info");
+            const url = URI(this.endpoint).filename("info").toString();
+            const response = await this.client.get(url);
             if (response.data.code === 200) {
                 const info: ValidatorNodeInfo = response.data.data;
                 if (info.nodeId === this.nodeId) {
@@ -102,7 +103,7 @@ export class Peer implements IPeer {
             const message = e.message !== undefined ? e.message : "An error has occurred.";
             logger.warn({
                 validatorIndex: this.index,
-                method: "Peer.check()",
+                method: `Peer.check() - ${this.endpoint}`,
                 message,
             });
             this.status = PeerStatus.INACTIVE;
@@ -115,7 +116,8 @@ export class Peer implements IPeer {
      */
     public async broadcast(data: ITransaction): Promise<void> {
         try {
-            const response = await this.client.post("/broadcast", data);
+            const url = URI(this.endpoint).filename("broadcast").toString();
+            const response = await this.client.post(url, data);
             if (response.data.code !== 200) {
                 const message =
                     response.data.error !== undefined && response.data.error.message !== undefined
@@ -132,7 +134,7 @@ export class Peer implements IPeer {
             const message = e.message !== undefined ? e.message : "An error has occurred.";
             logger.warn({
                 validatorIndex: this.index,
-                method: "Peer.broadcast()",
+                method: `Peer.broadcast() - ${this.endpoint}`,
                 message,
             });
             this.status = PeerStatus.INACTIVE;
@@ -144,7 +146,8 @@ export class Peer implements IPeer {
      */
     public async broadcastSubmit(data: ISubmitData): Promise<void> {
         try {
-            const response = await this.client.post("/broadcastSubmit", data);
+            const url = URI(this.endpoint).filename("broadcastSubmit").toString();
+            const response = await this.client.post(url, data);
             if (response.data.code !== 200) {
                 const message =
                     response.data.error !== undefined && response.data.error.message !== undefined
@@ -161,7 +164,7 @@ export class Peer implements IPeer {
             const message = e.message !== undefined ? e.message : "An error has occurred.";
             logger.warn({
                 validatorIndex: this.index,
-                method: "Peer.broadcastSubmit()",
+                method: `Peer.broadcastSubmit() - ${this.endpoint}`,
                 message,
             });
             this.status = PeerStatus.INACTIVE;

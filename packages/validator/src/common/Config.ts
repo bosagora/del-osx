@@ -78,9 +78,9 @@ export class NodeConfig implements INodeConfig {
 
         this.protocol = conf.protocol;
         this.host = conf.host;
-        this.port = conf.port;
+        this.port = Number(conf.port);
         this.external = conf.external;
-        this.delayLoading = conf.delayLoading;
+        this.delayLoading = Number(conf.delayLoading);
     }
 
     public static defaultValue(): INodeConfig {
@@ -99,9 +99,9 @@ export class NodeConfig implements INodeConfig {
 
         this.protocol = conf.protocol;
         this.host = conf.host;
-        this.port = conf.port;
+        this.port = Number(conf.port);
         this.external = conf.external;
-        this.delayLoading = conf.delayLoading;
+        this.delayLoading = Number(conf.delayLoading);
     }
 }
 
@@ -113,7 +113,7 @@ export class ValidatorConfig implements IValidatorConfig {
         const defaults = ValidatorConfig.defaultValue();
 
         this.validatorKey = defaults.validatorKey;
-        this.authenticationMode = defaults.authenticationMode;
+        this.authenticationMode = Number(defaults.authenticationMode);
     }
 
     public static defaultValue(): IValidatorConfig {
@@ -125,7 +125,7 @@ export class ValidatorConfig implements IValidatorConfig {
 
     public readFromObject(config: IValidatorConfig) {
         if (config.validatorKey !== undefined) this.validatorKey = config.validatorKey;
-        if (config.authenticationMode !== undefined) this.authenticationMode = config.authenticationMode;
+        if (config.authenticationMode !== undefined) this.authenticationMode = Number(config.authenticationMode);
     }
 }
 
@@ -176,7 +176,7 @@ export class SMTPConfig implements ISMTPConfig {
     constructor() {
         const defaults = SMTPConfig.defaultValue();
         this.host = defaults.host;
-        this.port = defaults.port;
+        this.port = Number(defaults.port);
         this.account = defaults.account;
         this.password = defaults.password;
     }
@@ -192,7 +192,7 @@ export class SMTPConfig implements ISMTPConfig {
 
     public readFromObject(config: ISMTPConfig) {
         if (config.host !== undefined) this.host = config.host;
-        if (config.port !== undefined) this.port = config.port;
+        if (config.port !== undefined) this.port = Number(config.port);
         if (config.account !== undefined) this.account = config.account;
         if (config.password !== undefined) this.password = config.password;
     }

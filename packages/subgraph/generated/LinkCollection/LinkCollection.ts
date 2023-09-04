@@ -114,6 +114,48 @@ export class UpdatedLinkItem__Params {
   }
 }
 
+export class LinkCollection__getRequestItemResult {
+  value0: BigInt;
+  value1: BigInt;
+  value2: BigInt;
+  value3: i32;
+
+  constructor(value0: BigInt, value1: BigInt, value2: BigInt, value3: i32) {
+    this.value0 = value0;
+    this.value1 = value1;
+    this.value2 = value2;
+    this.value3 = value3;
+  }
+
+  toMap(): TypedMap<string, ethereum.Value> {
+    let map = new TypedMap<string, ethereum.Value>();
+    map.set("value0", ethereum.Value.fromUnsignedBigInt(this.value0));
+    map.set("value1", ethereum.Value.fromUnsignedBigInt(this.value1));
+    map.set("value2", ethereum.Value.fromUnsignedBigInt(this.value2));
+    map.set(
+      "value3",
+      ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(this.value3))
+    );
+    return map;
+  }
+
+  getAgreement(): BigInt {
+    return this.value0;
+  }
+
+  getOpposition(): BigInt {
+    return this.value1;
+  }
+
+  getAbstaining(): BigInt {
+    return this.value2;
+  }
+
+  getStatus(): i32 {
+    return this.value3;
+  }
+}
+
 export class LinkCollection__getValidatorResultValue0Struct extends ethereum.Tuple {
   get validator(): Address {
     return this[0].toAddress();
@@ -170,6 +212,27 @@ export class LinkCollection extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBytes());
   }
 
+  canCountVote(_id: Bytes): i32 {
+    let result = super.call("canCountVote", "canCountVote(bytes32):(uint8)", [
+      ethereum.Value.fromFixedBytes(_id)
+    ]);
+
+    return result[0].toI32();
+  }
+
+  try_canCountVote(_id: Bytes): ethereum.CallResult<i32> {
+    let result = super.tryCall(
+      "canCountVote",
+      "canCountVote(bytes32):(uint8)",
+      [ethereum.Value.fromFixedBytes(_id)]
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
+  }
+
   getAddressOfValidators(): Array<Address> {
     let result = super.call(
       "getAddressOfValidators",
@@ -191,6 +254,43 @@ export class LinkCollection extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toAddressArray());
+  }
+
+  getRequestItem(_id: Bytes): LinkCollection__getRequestItemResult {
+    let result = super.call(
+      "getRequestItem",
+      "getRequestItem(bytes32):(uint32,uint32,uint32,uint8)",
+      [ethereum.Value.fromFixedBytes(_id)]
+    );
+
+    return new LinkCollection__getRequestItemResult(
+      result[0].toBigInt(),
+      result[1].toBigInt(),
+      result[2].toBigInt(),
+      result[3].toI32()
+    );
+  }
+
+  try_getRequestItem(
+    _id: Bytes
+  ): ethereum.CallResult<LinkCollection__getRequestItemResult> {
+    let result = super.tryCall(
+      "getRequestItem",
+      "getRequestItem(bytes32):(uint32,uint32,uint32,uint8)",
+      [ethereum.Value.fromFixedBytes(_id)]
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      new LinkCollection__getRequestItemResult(
+        value[0].toBigInt(),
+        value[1].toBigInt(),
+        value[2].toBigInt(),
+        value[3].toI32()
+      )
+    );
   }
 
   getValidator(_idx: BigInt): LinkCollection__getValidatorResultValue0Struct {
@@ -421,6 +521,36 @@ export class AddRequestCall__Outputs {
   _call: AddRequestCall;
 
   constructor(call: AddRequestCall) {
+    this._call = call;
+  }
+}
+
+export class CountVoteCall extends ethereum.Call {
+  get inputs(): CountVoteCall__Inputs {
+    return new CountVoteCall__Inputs(this);
+  }
+
+  get outputs(): CountVoteCall__Outputs {
+    return new CountVoteCall__Outputs(this);
+  }
+}
+
+export class CountVoteCall__Inputs {
+  _call: CountVoteCall;
+
+  constructor(call: CountVoteCall) {
+    this._call = call;
+  }
+
+  get _id(): Bytes {
+    return this._call.inputValues[0].value.toBytes();
+  }
+}
+
+export class CountVoteCall__Outputs {
+  _call: CountVoteCall;
+
+  constructor(call: CountVoteCall) {
     this._call = call;
   }
 }

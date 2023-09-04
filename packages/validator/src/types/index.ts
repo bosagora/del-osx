@@ -64,6 +64,7 @@ export interface ISubmitData {
 export enum EmailValidationStatus {
     NONE,
     SENT,
+    VOTED,
     CONFIRMED,
     EXPIRED,
 }
@@ -93,6 +94,7 @@ export enum JobType {
     REGISTER,
     BROADCAST,
     VOTE,
+    COUNT,
 }
 export interface IJob {
     type: JobType;

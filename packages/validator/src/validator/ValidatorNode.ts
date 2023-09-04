@@ -10,6 +10,7 @@ import cors from "cors";
 import express from "express";
 import http from "http";
 import { AuthenticationMode } from "../types";
+import { logger } from "../common/Logger";
 
 export class ValidatorNode {
     public static INIT_WAITING_SECONDS: number = 2;
@@ -36,10 +37,20 @@ export class ValidatorNode {
         ) {
             this._emailSender = new EMailNoSender();
         } else {
+            logger.info({
+                validatorIndex: "n",
+                method: "ValidatorNode.constructor()",
+                message: `AuthenticationMode.YesEMail`,
+            });
             this._emailSender = new EMailSender(this._config);
         }
 
         if (this._config.validator.authenticationMode === AuthenticationMode.YesEMailUnknownCode) {
+            logger.info({
+                validatorIndex: "n",
+                method: "ValidatorNode.constructor()",
+                message: `AuthenticationMode.UnknownCode`,
+            });
             this._codeGenerator = new CodeGenerator();
         } else {
             this._codeGenerator = new FixedCodeGenerator(0);

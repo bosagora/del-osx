@@ -105,7 +105,7 @@ describe("Test of ValidatorNode - NoEMailNoCode", function () {
         });
 
         it("Wait", async () => {
-            await delay(7000);
+            await delay(10000);
         });
 
         it("Check link data", async () => {
