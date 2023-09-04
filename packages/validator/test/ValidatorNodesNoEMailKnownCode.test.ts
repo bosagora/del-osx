@@ -166,7 +166,7 @@ describe("Test of ValidatorNode - NoEMailKnownCode", function () {
         });
 
         it("Wait", async () => {
-            await delay(3000);
+            await delay(5000);
         });
 
         it("Check link data", async () => {

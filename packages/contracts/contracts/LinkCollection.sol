@@ -171,37 +171,57 @@ contract LinkCollection {
     /// @param _ballot 이메일 검증결과
     function voteRequest(bytes32 _id, Ballot _ballot) public onlyValidator {
         require(requests[_id].status != RequestStatus.INVALID, "E004");
-
-        if (requests[_id].status != RequestStatus.ACCEPTED) {
-            if (requests[_id].ballots[msg.sender] != _ballot) {
-                if (requests[_id].ballots[msg.sender] == Ballot.AGREEMENT) {
-                    requests[_id].agreement--;
-                } else if (requests[_id].ballots[msg.sender] == Ballot.OPPOSITION) {
-                    requests[_id].opposition--;
-                } else if (requests[_id].ballots[msg.sender] == Ballot.ABSTAINING) {
-                    requests[_id].abstaining--;
+        RequestItem storage req = requests[_id];
+        if (req.status == RequestStatus.REQUESTED) {
+            if (req.ballots[msg.sender] != _ballot) {
+                if (req.ballots[msg.sender] == Ballot.AGREEMENT) {
+                    req.agreement--;
+                } else if (req.ballots[msg.sender] == Ballot.OPPOSITION) {
+                    req.opposition--;
+                } else if (req.ballots[msg.sender] == Ballot.ABSTAINING) {
+                    req.abstaining--;
                 }
+
+                req.ballots[msg.sender] = _ballot;
                 if (_ballot == Ballot.AGREEMENT) {
-                    requests[_id].agreement++;
+                    req.agreement++;
                 } else if (_ballot == Ballot.OPPOSITION) {
-                    requests[_id].opposition++;
+                    req.opposition++;
                 } else {
-                    requests[_id].abstaining++;
+                    req.abstaining++;
                 }
+            }
+        }
+    }
 
-                if ((requests[_id].agreement * 1000) / validatorAddresses.length >= quorum) {
-                    if (
-                        emailToAddress[requests[_id].email] == address(0x00) &&
-                        addressToEmail[requests[_id].wallet] == bytes32(0x00)
-                    ) {
-                        emailToAddress[requests[_id].email] = requests[_id].wallet;
-                        addressToEmail[requests[_id].wallet] = requests[_id].email;
-                        requests[_id].status = RequestStatus.ACCEPTED;
-                        emit AcceptedRequestItem(requests[_id].id, requests[_id].email, requests[_id].wallet);
-                    } else {
-                        requests[_id].status = RequestStatus.REJECTED;
-                        emit RejectedRequestItem(requests[_id].id, requests[_id].email, requests[_id].wallet);
-                    }
+    /// @notice 개표를 진행할 수 있는지를 확인한다.
+    /// @param _id 요청 아이디
+    function canCountVote(bytes32 _id) public view returns (uint8) {
+        RequestItem storage req = requests[_id];
+        if (req.status == RequestStatus.REQUESTED) {
+            if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
+                return uint8(1);
+            } else {
+                return uint8(2);
+            }
+        }
+        return uint8(0);
+    }
+
+    /// @notice 개표를 진행한다.
+    /// @param _id 요청 아이디
+    function countVote(bytes32 _id) public onlyValidator {
+        RequestItem storage req = requests[_id];
+        if (req.status == RequestStatus.REQUESTED) {
+            if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
+                if (emailToAddress[req.email] == address(0x00) && addressToEmail[req.wallet] == bytes32(0x00)) {
+                    emailToAddress[req.email] = req.wallet;
+                    addressToEmail[req.wallet] = req.email;
+                    req.status = RequestStatus.ACCEPTED;
+                    emit AcceptedRequestItem(req.id, req.email, req.wallet);
+                } else {
+                    req.status = RequestStatus.REJECTED;
+                    emit RejectedRequestItem(req.id, req.email, req.wallet);
                 }
             }
         }
@@ -262,5 +282,11 @@ contract LinkCollection {
     function getValidator(uint _idx) public view returns (ValidatorItem memory) {
         require(_idx < validatorAddresses.length, "Out of range");
         return validators[validatorAddresses[_idx]];
+    }
+
+    function getRequestItem(
+        bytes32 _id
+    ) public view returns (uint32 agreement, uint32 opposition, uint32 abstaining, RequestStatus status) {
+        return (requests[_id].agreement, requests[_id].opposition, requests[_id].abstaining, requests[_id].status);
     }
 }

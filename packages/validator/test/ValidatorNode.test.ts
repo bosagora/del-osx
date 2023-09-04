@@ -93,11 +93,15 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Wait", async () => {
-            await delay(3000);
+            await delay(5000);
         });
 
         it("Vote", async () => {
             await linkCollectionContract.connect(validator1).voteRequest(requestId, 1);
+        });
+
+        it("Count", async () => {
+            await linkCollectionContract.connect(validator1).countVote(requestId);
         });
 
         it("Check link data", async () => {

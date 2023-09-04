@@ -48,7 +48,9 @@ describe("Test for LinkCollection", () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
         await contract.connect(validator1).voteRequest(requestId, 1);
-        await expect(contract.connect(validator2).voteRequest(requestId, 1))
+        await contract.connect(validator2).voteRequest(requestId, 1);
+
+        await expect(contract.connect(validator1).countVote(requestId))
             .to.emit(contract, "AcceptedRequestItem")
             .withArgs(requestId, hash, user1.address);
 

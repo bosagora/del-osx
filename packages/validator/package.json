@@ -19,8 +19,7 @@
         "formatting:write": "prettier '**/*.{json,sol,ts,js,md}' --write",
         "test:ValidatorNode": "NODE_ENV=test hardhat test test/ValidatorNode.test.ts",
         "test:ValidatorNodesNoEMailNoCode": "NODE_ENV=test hardhat test test/ValidatorNodesNoEMailNoCode.test.ts",
-        "test:ValidatorNodesNoEMailKnownCode": "NODE_ENV=test hardhat test test/ValidatorNodesNoEMailKnownCode.test.ts",
-        "test:ValidatorNodesYesEMailKnownCode": "NODE_ENV=test hardhat test test/ValidatorNodesYesEMailKnownCode.test.ts"
+        "test:ValidatorNodesNoEMailKnownCode": "NODE_ENV=test hardhat test test/ValidatorNodesNoEMailKnownCode.test.ts"
     },
     "repository": {
         "type": "git",
@@ -58,7 +57,7 @@
         "chai": "^4.3.7",
         "chai-http": "^4.3.7",
         "cors": "^2.8.5",
-        "del-osx-artifacts": "^1.0.5",
+        "del-osx-artifacts": "^1.0.6",
         "dotenv": "^10.0.0",
         "ethereum-waffle": "^4.0.10",
         "ethers": "^5.7.0",

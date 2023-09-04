@@ -680,6 +680,19 @@ export class Router {
         }
     }
 
+    private async countVote(requestId: string) {
+        try {
+            await (await this.getContract()).connect(this.getSigner()).countVote(requestId);
+        } catch (e: any) {
+            const message = e.message !== undefined ? e.message : "Error when calling contract";
+            logger.error({
+                validatorIndex: this._validatorIndex,
+                method: "Router.voteAgreement()",
+                message,
+            });
+        }
+    }
+
     public async onWork() {
         const currentTime = ContractUtils.getTimeStamp();
         if (currentTime - this._startTimeStamp < ValidatorNode.INIT_WAITING_SECONDS) {
@@ -771,7 +784,48 @@ export class Router {
                     await this.voteAgreement(job.requestId, Ballot.AGREEMENT);
                     const validation = this._validations.get(job.requestId);
                     if (validation !== undefined) {
-                        validation.status = EmailValidationStatus.CONFIRMED;
+                        validation.status = EmailValidationStatus.VOTED;
+                    }
+
+                    this.addJob({
+                        type: JobType.COUNT,
+                        requestId: job.requestId,
+                    });
+                    break;
+
+                case JobType.COUNT:
+                    const res = await (await this.getContract()).canCountVote(job.requestId);
+                    if (res === 1) {
+                        logger.info({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.onWork()",
+                            message: `JobType.COUNT, Counting is possible. ${job.requestId}`,
+                        });
+                        await this.countVote(job.requestId);
+                        const validation2 = this._validations.get(job.requestId);
+                        if (validation2 !== undefined) {
+                            validation2.status = EmailValidationStatus.CONFIRMED;
+                        }
+                    } else if (res === 2) {
+                        logger.info({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.onWork()",
+                            message: `JobType.COUNT, Counting is impossible. ${job.requestId}`,
+                        });
+                        this.addJob({
+                            type: JobType.COUNT,
+                            requestId: job.requestId,
+                        });
+                    } else {
+                        logger.info({
+                            validatorIndex: this._validatorIndex,
+                            method: "Router.onWork()",
+                            message: `JobType.COUNT, Counting has already been completed. ${job.requestId}`,
+                        });
+                        const validation2 = this._validations.get(job.requestId);
+                        if (validation2 !== undefined) {
+                            validation2.status = EmailValidationStatus.CONFIRMED;
+                        }
                     }
                     break;
             }
