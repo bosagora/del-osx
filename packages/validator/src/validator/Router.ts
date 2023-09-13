@@ -112,7 +112,7 @@ export class Router {
 
         // 없어진 검증자를 맵에서 제거
         for (const key of this._validators.keys()) {
-            if (res.find((m) => m.validator.toLowerCase() === key) === undefined) {
+            if (res.find((m: any) => m.validator.toLowerCase() === key) === undefined) {
                 this._validators.delete(key);
             }
         }
@@ -166,7 +166,7 @@ export class Router {
         while (!done) {
             done = true;
             for (let idx = 0; idx < this._peers.items.length; idx++) {
-                if (res.find((m) => m.validator.toLowerCase() === this._peers.items[idx].nodeId) === undefined) {
+                if (res.find((m: any) => m.validator.toLowerCase() === this._peers.items[idx].nodeId) === undefined) {
                     this._peers.items.splice(idx, 1);
                     done = false;
                     break;
@@ -176,6 +176,7 @@ export class Router {
     }
 
     public registerRoutes() {
+        this._validator.app.get("/", [], this.getHealthStatus.bind(this));
         this._validator.app.get("/info", [], this.getInfo.bind(this));
         this._validator.app.get("/peers", [], this.getPeers.bind(this));
         this._validator.app.post(
@@ -249,6 +250,10 @@ export class Router {
             ],
             this.postBroadcastSubmit.bind(this)
         );
+    }
+
+    private async getHealthStatus(req: express.Request, res: express.Response) {
+        return res.json("OK");
     }
 
     private async getInfo(req: express.Request, res: express.Response) {
