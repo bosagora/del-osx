@@ -1,5 +1,5 @@
-import { LinkCollection } from "../typechain-types";
 import { ContractUtils } from "../src/utils/ContractUtils";
+import { LinkCollection } from "../typechain-types";
 
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
@@ -47,8 +47,8 @@ describe("Test for LinkCollection", () => {
     it("Vote of request item", async () => {
         const email = "abc@example.com";
         const hash = ContractUtils.sha256String(email);
-        await contract.connect(validator1).voteRequest(requestId, 1);
-        await contract.connect(validator2).voteRequest(requestId, 1);
+        await contract.connect(validator1).voteRequest(requestId);
+        await contract.connect(validator2).voteRequest(requestId);
 
         await expect(contract.connect(validator1).countVote(requestId))
             .to.emit(contract, "AcceptedRequestItem")
@@ -66,7 +66,7 @@ describe("Test for LinkCollection", () => {
         requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
         await expect(
             contract.connect(validators[1]).addRequest(requestId, hash, user2.address, signature)
-        ).to.be.revertedWith("E001");
+        ).to.be.revertedWith("Invalid email hash");
     });
 
     it("Add an item with the same address", async () => {
@@ -76,7 +76,7 @@ describe("Test for LinkCollection", () => {
         const signature = await ContractUtils.sign(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
-            "E002"
+            "Invalid address"
         );
     });
 
@@ -104,7 +104,7 @@ describe("Test for LinkCollection", () => {
         const signature = await ContractUtils.sign(user3, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user3.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user3.address, signature)).to.be.revertedWith(
-            "E001"
+            "Invalid email hash"
         );
     });
 
