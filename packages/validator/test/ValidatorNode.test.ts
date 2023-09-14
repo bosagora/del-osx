@@ -97,7 +97,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Vote", async () => {
-            await linkCollectionContract.connect(validator1).voteRequest(requestId, 1);
+            await linkCollectionContract.connect(validator1).voteRequest(requestId);
         });
 
         it("Count", async () => {

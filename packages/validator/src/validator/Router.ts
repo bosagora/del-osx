@@ -674,7 +674,7 @@ export class Router {
 
     private async voteAgreement(requestId: string, ballot: Ballot) {
         try {
-            await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId, ballot);
+            await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId);
         } catch (e: any) {
             const message = e.message !== undefined ? e.message : "Error when calling contract";
             logger.error({

@@ -4,12 +4,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-// E000 : invalid signature
-// E001 : invalid email hash
-// E002 : invalid address
-// E003 : not validator
-// E004 : invalid ID
-
 /// Contract for converting e-mail to wallet
 contract LinkCollection {
     bytes32 public constant NULL = 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
@@ -32,20 +26,11 @@ contract LinkCollection {
         address wallet;
         bytes signature;
         uint32 agreement;
-        uint32 opposition;
-        uint32 abstaining;
-        mapping(address => Ballot) ballots;
+        mapping(address => bool) voters;
         RequestStatus status;
     }
     mapping(bytes32 => RequestItem) private requests;
     bytes32[] private requestIds;
-
-    enum Ballot {
-        NONE,
-        AGREEMENT,
-        OPPOSITION,
-        ABSTAINING
-    }
 
     uint256 private quorum;
 
@@ -93,7 +78,7 @@ contract LinkCollection {
 
     /// @notice 검증자들만 호출할 수 있도록 해준다.
     modifier onlyValidator() {
-        require(validators[msg.sender].status == ValidatorStatus.ACTIVE, "E003");
+        require(validators[msg.sender].status == ValidatorStatus.ACTIVE, "Not validator");
         _;
     }
 
@@ -110,17 +95,17 @@ contract LinkCollection {
         address _wallet2,
         bytes calldata _signature2
     ) public {
-        require(_email != NULL, "E001");
+        require(_email != NULL, "Invalid email hash");
         bytes32 dataHash1 = keccak256(abi.encode(_email, _wallet1, nonce[_wallet1]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), _signature1) == _wallet1, "E000");
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), _signature1) == _wallet1, "Invalid signature");
 
         bytes32 dataHash2 = keccak256(abi.encode(_email, _wallet2, nonce[_wallet2]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "E000");
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "Invalid signature");
 
-        require(emailToAddress[_email] == _wallet1, "E001");
-        require(addressToEmail[_wallet1] == _email, "E002");
-        require(addressToEmail[_wallet2] == bytes32(0x00), "E002");
-        require(_wallet1 != _wallet2, "E002");
+        require(emailToAddress[_email] == _wallet1, "Invalid email hash");
+        require(addressToEmail[_wallet1] == _email, "Invalid address");
+        require(addressToEmail[_wallet2] == bytes32(0x00), "Invalid address");
+        require(_wallet1 != _wallet2, "Invalid address");
 
         delete addressToEmail[_wallet1];
 
@@ -146,13 +131,13 @@ contract LinkCollection {
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
     function addRequest(bytes32 _id, bytes32 _email, address _wallet, bytes calldata _signature) public {
-        require(requests[_id].status == RequestStatus.INVALID, "E004");
-        require(_email != NULL, "E001");
+        require(requests[_id].status == RequestStatus.INVALID, "Invalid ID");
+        require(_email != NULL, "Invalid email hash");
         bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "E000");
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
-        require(emailToAddress[_email] == address(0x00), "E001");
-        require(addressToEmail[_wallet] == bytes32(0x00), "E002");
+        require(emailToAddress[_email] == address(0x00), "Invalid email hash");
+        require(addressToEmail[_wallet] == bytes32(0x00), "Invalid address");
 
         nonce[_wallet]++;
 
@@ -168,28 +153,13 @@ contract LinkCollection {
 
     /// @notice 검증자들이 이메일 검증결과를 등록한다.
     /// @param _id 요청 아이디
-    /// @param _ballot 이메일 검증결과
-    function voteRequest(bytes32 _id, Ballot _ballot) public onlyValidator {
-        require(requests[_id].status != RequestStatus.INVALID, "E004");
+    function voteRequest(bytes32 _id) public onlyValidator {
+        require(requests[_id].status != RequestStatus.INVALID, "Invalid ID");
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
-            if (req.ballots[msg.sender] != _ballot) {
-                if (req.ballots[msg.sender] == Ballot.AGREEMENT) {
-                    req.agreement--;
-                } else if (req.ballots[msg.sender] == Ballot.OPPOSITION) {
-                    req.opposition--;
-                } else if (req.ballots[msg.sender] == Ballot.ABSTAINING) {
-                    req.abstaining--;
-                }
-
-                req.ballots[msg.sender] = _ballot;
-                if (_ballot == Ballot.AGREEMENT) {
-                    req.agreement++;
-                } else if (_ballot == Ballot.OPPOSITION) {
-                    req.opposition++;
-                } else {
-                    req.abstaining++;
-                }
+            if (req.voters[msg.sender] == false) {
+                req.voters[msg.sender] = true;
+                req.agreement++;
             }
         }
     }
@@ -284,9 +254,7 @@ contract LinkCollection {
         return validators[validatorAddresses[_idx]];
     }
 
-    function getRequestItem(
-        bytes32 _id
-    ) public view returns (uint32 agreement, uint32 opposition, uint32 abstaining, RequestStatus status) {
-        return (requests[_id].agreement, requests[_id].opposition, requests[_id].abstaining, requests[_id].status);
+    function getRequestItem(bytes32 _id) public view returns (uint32 agreement, RequestStatus status) {
+        return (requests[_id].agreement, requests[_id].status);
     }
 }
