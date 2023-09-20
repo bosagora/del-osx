@@ -561,7 +561,7 @@ export class Router {
 
     private async processSendEmail(requestId: string) {
         const validation = this._validations.get(requestId);
-        if (validation !== undefined && validation.status === EmailValidationStatus.NONE) {
+        if (validation !== undefined && validation.validationStatus === EmailValidationStatus.NONE) {
             const sendCode = this._codeGenerator.getCode();
             await this._emailSender.send(
                 this._validatorIndex,
@@ -570,15 +570,15 @@ export class Router {
                 validation.tx.request.email
             );
             validation.sendCode = sendCode;
-            validation.status = EmailValidationStatus.SENT;
+            validation.validationStatus = EmailValidationStatus.SENT;
         }
     }
 
     private async processSubmit(requestId: string, receiveCode: string, res: express.Response) {
         const validation = this._validations.get(requestId);
         if (validation !== undefined) {
-            if (validation.status === EmailValidationStatus.SENT) {
-                if (validation.expirationTimestamp > ContractUtils.getTimeStamp()) {
+            if (validation.validationStatus === EmailValidationStatus.SENT) {
+                if (validation.expire > ContractUtils.getTimeStamp()) {
                     validation.receiveCode = receiveCode.substring(
                         this._validatorIndex * 2,
                         this._validatorIndex * 2 + 2
@@ -600,7 +600,7 @@ export class Router {
                         );
                     }
                 } else {
-                    validation.status = EmailValidationStatus.EXPIRED;
+                    validation.validationStatus = EmailValidationStatus.EXPIRED;
                     logger.warn({
                         validatorIndex: this._validatorIndex,
                         method: "Router.processSubmit()",
@@ -610,14 +610,14 @@ export class Router {
                         this.makeResponseData(430, null, { message: "The authentication code is expired." })
                     );
                 }
-            } else if (validation.status === EmailValidationStatus.NONE) {
+            } else if (validation.validationStatus === EmailValidationStatus.NONE) {
                 logger.warn({
                     validatorIndex: this._validatorIndex,
                     method: "Router.processSubmit()",
                     message: `The email has not been sent. ${requestId}`,
                 });
                 return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
-            } else if (validation.status === EmailValidationStatus.CONFIRMED) {
+            } else if (validation.validationStatus === EmailValidationStatus.CONFIRMED) {
                 logger.warn({
                     validatorIndex: this._validatorIndex,
                     method: "Router.processSubmit()",
@@ -626,7 +626,7 @@ export class Router {
                 return res.json(
                     this.makeResponseData(421, null, { message: "Processing has already been completed." })
                 );
-            } else if (validation.status === EmailValidationStatus.EXPIRED) {
+            } else if (validation.validationStatus === EmailValidationStatus.EXPIRED) {
                 logger.warn({
                     validatorIndex: this._validatorIndex,
                     method: "Router.processSubmit()",
@@ -734,10 +734,10 @@ export class Router {
 
                         this._validations.set(job.requestId, {
                             tx: job.broadcastData,
-                            status: EmailValidationStatus.NONE,
+                            validationStatus: EmailValidationStatus.NONE,
                             sendCode: "",
                             receiveCode: "",
-                            expirationTimestamp: ContractUtils.getTimeStamp() + 5 * 60,
+                            expire: ContractUtils.getTimeStamp() + 5 * 60,
                         });
 
                         await this.processSendEmail(job.requestId);
@@ -762,10 +762,10 @@ export class Router {
                     if (job.broadcastData !== undefined) {
                         this._validations.set(job.requestId, {
                             tx: job.broadcastData,
-                            status: EmailValidationStatus.NONE,
+                            validationStatus: EmailValidationStatus.NONE,
                             sendCode: "",
                             receiveCode: "",
-                            expirationTimestamp: ContractUtils.getTimeStamp() + 5 * 60,
+                            expire: ContractUtils.getTimeStamp() + 5 * 60,
                         });
 
                         await this.processSendEmail(job.requestId);
@@ -789,7 +789,7 @@ export class Router {
                     await this.voteAgreement(job.requestId, Ballot.AGREEMENT);
                     const validation = this._validations.get(job.requestId);
                     if (validation !== undefined) {
-                        validation.status = EmailValidationStatus.VOTED;
+                        validation.validationStatus = EmailValidationStatus.VOTED;
                     }
 
                     this.addJob({
@@ -809,7 +809,7 @@ export class Router {
                         await this.countVote(job.requestId);
                         const validation2 = this._validations.get(job.requestId);
                         if (validation2 !== undefined) {
-                            validation2.status = EmailValidationStatus.CONFIRMED;
+                            validation2.validationStatus = EmailValidationStatus.CONFIRMED;
                         }
                     } else if (res === 2) {
                         logger.info({
@@ -829,7 +829,7 @@ export class Router {
                         });
                         const validation2 = this._validations.get(job.requestId);
                         if (validation2 !== undefined) {
-                            validation2.status = EmailValidationStatus.CONFIRMED;
+                            validation2.validationStatus = EmailValidationStatus.CONFIRMED;
                         }
                     }
                     break;
