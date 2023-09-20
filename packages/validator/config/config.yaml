@@ -4,6 +4,9 @@ node:
   external: ${NODE_EXTERNAL_IP}
   delayLoading: ${NODE_DELAY_LOADING}
 
+database:
+  path: ${DB_PATH}
+
 logging:
   level: ${LOGGING_LEVEL}
 

@@ -69,42 +69,14 @@ export enum EmailValidationStatus {
     EXPIRED,
 }
 
-/**
- * 이메일 인증의 상태를 기록하기 위한 데이터
- */
-export interface IEmailValidation {
-    tx: ITransaction;
-    validationStatus: EmailValidationStatus;
-    sendCode: string;
-    receiveCode: string;
-    expire: number;
-}
-
-/**
- * 검증자의 투표
- */
-export enum Ballot {
+export enum ProcessStep {
     NONE,
-    AGREEMENT,
-    OPPOSITION,
-    ABSTAINING,
-}
-
-export enum JobType {
-    REGISTER,
-    BROADCAST,
-    VOTE,
-    COUNT,
-}
-export interface IJob {
-    type: JobType;
-    requestId: string;
-    registerData?: {
-        emailHash: string;
-        address: string;
-        signature: string;
-    };
-    broadcastData?: ITransaction;
+    RECEIVED_REGISTER, // => REGISTER
+    RECEIVED_BROADCAST, // => SEND CODE
+    SENT_EMAIL, // => WAITING
+    RECEIVED_CODE, // => VOTE
+    VOTED, // => COUNT
+    FINISHED,
 }
 
 export enum AuthenticationMode {
@@ -112,4 +84,50 @@ export enum AuthenticationMode {
     NoEMailKnownCode,
     YesEMailKnownCode,
     YesEMailUnknownCode,
+}
+
+export interface IValidationData {
+    requestId: string;
+    requestEmail: string;
+    requestAddress: string;
+    requestNonce: string;
+    requestSignature: string;
+    receiver: string;
+    signature: string;
+    validationStatus: EmailValidationStatus;
+    sendCode: string;
+    receiveCode: string;
+    expire: number;
+    processStep: ProcessStep;
+}
+
+export function toValidationData(tx: ITransaction): IValidationData {
+    return {
+        requestId: tx.requestId,
+        requestEmail: tx.request.email,
+        requestAddress: tx.request.address,
+        requestNonce: tx.request.nonce,
+        requestSignature: tx.request.signature,
+        receiver: tx.receiver,
+        signature: tx.signature,
+        validationStatus: EmailValidationStatus.NONE,
+        sendCode: "",
+        receiveCode: "",
+        expire: 0,
+        processStep: ProcessStep.NONE,
+    };
+}
+
+export function toTransaction(data: IValidationData): ITransaction {
+    return {
+        requestId: data.requestId,
+        request: {
+            email: data.requestEmail,
+            address: data.requestAddress,
+            nonce: data.requestNonce,
+            signature: data.requestSignature,
+        },
+        receiver: data.receiver,
+        signature: data.signature,
+    };
 }

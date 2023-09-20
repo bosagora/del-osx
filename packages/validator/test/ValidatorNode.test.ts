@@ -1,4 +1,5 @@
 import { Config } from "../src/common/Config";
+import { Storage } from "../src/storage/Storages";
 import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { LinkCollection } from "../typechain-types";
@@ -37,6 +38,7 @@ describe("Test of ValidatorNode", function () {
 
     const client = new TestClient();
     let validatorNode: TestValidatorNode;
+    let storage: Storage;
     let validatorNodeURL: string;
     let config: Config;
 
@@ -53,9 +55,13 @@ describe("Test of ValidatorNode", function () {
             config.validator.authenticationMode = AuthenticationMode.NoEMailKnownCode;
         });
 
+        before("Create Storage", async () => {
+            storage = await Storage.make(config.database.path);
+        });
+
         before("Create Validator Client", async () => {
             validatorNodeURL = `http://localhost:${config.node.port}`;
-            validatorNode = new TestValidatorNode(config);
+            validatorNode = new TestValidatorNode(config, storage);
         });
 
         before("Start Validator Client", async () => {

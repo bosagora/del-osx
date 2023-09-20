@@ -1,7 +1,7 @@
 import { Config } from "../src/common/Config";
-import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
+import { Storage } from "../src/storage/Storages";
+import { AuthenticationMode } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { PeerStatus } from "../src/validator/Peers";
 import { ValidatorNode } from "../src/validator/ValidatorNode";
 import { LinkCollection } from "../typechain-types";
 import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
@@ -38,6 +38,7 @@ describe("Test of ValidatorNode - NoEMailNoCode", function () {
     };
 
     const validatorNodes: TestValidatorNode[] = [];
+    const storages: Storage[] = [];
     const validatorNodeURLs: string[] = [];
     const configs: Config[] = [];
     const maxValidatorCount = 3;
@@ -66,10 +67,16 @@ describe("Test of ValidatorNode - NoEMailNoCode", function () {
             }
         });
 
+        before("Create Storages", async () => {
+            for (let idx = 0; idx < maxValidatorCount; idx++) {
+                storages.push(await Storage.make(configs[idx].database.path));
+            }
+        });
+
         before("Create Validator Nodes", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
                 validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
-                validatorNodes.push(new TestValidatorNode(configs[idx]));
+                validatorNodes.push(new TestValidatorNode(configs[idx], storages[idx]));
             }
         });
 
