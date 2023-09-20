@@ -74,10 +74,10 @@ export enum EmailValidationStatus {
  */
 export interface IEmailValidation {
     tx: ITransaction;
-    status: EmailValidationStatus;
+    validationStatus: EmailValidationStatus;
     sendCode: string;
     receiveCode: string;
-    expirationTimestamp: number;
+    expire: number;
 }
 
 /**
