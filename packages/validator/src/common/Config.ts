@@ -8,6 +8,8 @@ import { Utils } from "../utils/Utils";
 export class Config implements IConfig {
     public node: NodeConfig;
 
+    public database: DatabaseConfig;
+
     public logging: LoggingConfig;
 
     public validator: ValidatorConfig;
@@ -18,6 +20,7 @@ export class Config implements IConfig {
 
     constructor() {
         this.node = new NodeConfig();
+        this.database = new DatabaseConfig();
         this.logging = new LoggingConfig();
         this.validator = new ValidatorConfig();
         this.contracts = new ContractsConfig();
@@ -58,6 +61,7 @@ export class Config implements IConfig {
             return (process.env || {})[key];
         }) as IConfig;
         this.node.readFromObject(cfg.node);
+        this.database.readFromObject(cfg.database);
         this.logging.readFromObject(cfg.logging);
         this.validator.readFromObject(cfg.validator);
         this.contracts.readFromObject(cfg.contracts);
@@ -102,6 +106,25 @@ export class NodeConfig implements INodeConfig {
         this.port = Number(conf.port);
         this.external = conf.external;
         this.delayLoading = Number(conf.delayLoading);
+    }
+}
+
+export class DatabaseConfig implements IDatabaseConfig {
+    public path: string;
+
+    constructor() {
+        const defaults = DatabaseConfig.defaultValue();
+        this.path = defaults.path;
+    }
+
+    public readFromObject(config: IDatabaseConfig) {
+        if (config.path !== undefined) this.path = config.path;
+    }
+
+    public static defaultValue(): IDatabaseConfig {
+        return {
+            path: "./db/validation.db",
+        } as unknown as IDatabaseConfig;
     }
 }
 
@@ -205,6 +228,10 @@ export interface INodeConfig {
     delayLoading: number;
 }
 
+export interface IDatabaseConfig {
+    path: string;
+}
+
 export interface ILoggingConfig {
     level: string;
 }
@@ -227,6 +254,7 @@ export interface ISMTPConfig {
 
 export interface IConfig {
     node: INodeConfig;
+    database: IDatabaseConfig;
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;

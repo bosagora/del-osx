@@ -1,7 +1,9 @@
 import { Config } from "../common/Config";
+import { logger } from "../common/Logger";
 import { CodeGenerator, FixedCodeGenerator, ICodeGenerator } from "../delegator/CodeGenerator";
 import { EMailNoSender, EMailSender, IEmailSender } from "../delegator/EMailSender";
-import { Peer, Peers } from "./Peers";
+import { Storage } from "../storage/Storages";
+import { Peers } from "./Peers";
 import { Router } from "./Router";
 import { Worker } from "./Worker";
 
@@ -10,7 +12,6 @@ import cors from "cors";
 import express from "express";
 import http from "http";
 import { AuthenticationMode } from "../types";
-import { logger } from "../common/Logger";
 
 export class ValidatorNode {
     public static INIT_WAITING_SECONDS: number = 2;
@@ -20,15 +21,17 @@ export class ValidatorNode {
 
     private readonly _config: Config;
     private readonly _router: Router;
+    private readonly _storage: Storage;
     private readonly _peers: Peers;
     private readonly _worker: Worker;
 
     private readonly _emailSender: IEmailSender;
     private readonly _codeGenerator: ICodeGenerator;
 
-    constructor(config: Config) {
+    constructor(config: Config, storage: Storage) {
         this._app = express();
         this._config = config;
+        this._storage = storage;
         this._peers = new Peers();
 
         if (
@@ -56,7 +59,14 @@ export class ValidatorNode {
             this._codeGenerator = new FixedCodeGenerator(0);
         }
 
-        this._router = new Router(this, this._config, this._peers, this._emailSender, this._codeGenerator);
+        this._router = new Router(
+            this,
+            this._config,
+            this._storage,
+            this._peers,
+            this._emailSender,
+            this._codeGenerator
+        );
         this._worker = new Worker("*/1 * * * * *", this, this._router);
     }
 

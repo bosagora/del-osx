@@ -4,15 +4,16 @@ import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
 import { ICodeGenerator } from "../delegator/CodeGenerator";
 import { IEmailSender } from "../delegator/EMailSender";
+import { Storage } from "../storage/Storages";
 import {
     AuthenticationMode,
-    Ballot,
     EmailValidationStatus,
-    IEmailValidation,
-    IJob,
     ISubmitData,
     ITransaction,
-    JobType,
+    IValidationData,
+    ProcessStep,
+    toTransaction,
+    toValidationData,
     ValidatorNodeInfo,
 } from "../types";
 import { ContractUtils } from "../utils/ContractUtils";
@@ -31,6 +32,7 @@ import ip from "ip";
 export class Router {
     private readonly _validator: ValidatorNode;
     private readonly _config: Config;
+    private readonly _storage: Storage;
     private readonly _wallet: Wallet;
     private _peers: Peers;
     private _contract: LinkCollection | undefined;
@@ -45,22 +47,21 @@ export class Router {
 
     private _validatorIndex: number;
     private _validators: Map<string, string> = new Map<string, string>();
-    private _validations: Map<string, IEmailValidation> = new Map<string, IEmailValidation>();
 
     private readonly _emailSender: IEmailSender;
     private readonly _codeGenerator: ICodeGenerator;
 
-    private _jobList: IJob[] = [];
-
     constructor(
         validator: ValidatorNode,
         config: Config,
+        storage: Storage,
         peers: Peers,
         emailSender: IEmailSender,
         codeGenerator: ICodeGenerator
     ) {
         this._validator = validator;
         this._config = config;
+        this._storage = storage;
         this._peers = peers;
         this._emailSender = emailSender;
         this._codeGenerator = codeGenerator;
@@ -342,18 +343,11 @@ export class Router {
             };
             tx.signature = await ContractUtils.signTx(this.getSigner(), tx);
 
-            this.addJob({
-                type: JobType.REGISTER,
-                requestId,
-                registerData: {
-                    emailHash,
-                    address,
-                    signature,
-                },
-                broadcastData: tx,
-            });
-
             try {
+                const data: IValidationData = toValidationData(tx);
+                data.processStep = ProcessStep.RECEIVED_REGISTER;
+                await this._storage.createValidation(data);
+
                 return res.json(
                     this.makeResponseData(200, {
                         requestId,
@@ -433,13 +427,24 @@ export class Router {
                 );
             }
 
-            this.addJob({
-                type: JobType.BROADCAST,
-                requestId: tx.requestId,
-                broadcastData: tx,
-            });
+            try {
+                const data: IValidationData = toValidationData(tx);
+                data.processStep = ProcessStep.RECEIVED_BROADCAST;
+                await this._storage.createValidation(data);
 
-            return res.json(this.makeResponseData(200, {}));
+                return res.json(
+                    this.makeResponseData(200, {
+                        requestId: data.requestId,
+                    })
+                );
+            } catch (error: any) {
+                const message = error.message !== undefined ? error.message : "Failed save request";
+                return res.json(
+                    this.makeResponseData(800, undefined, {
+                        message,
+                    })
+                );
+            }
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed broadcast request";
             logger.error({
@@ -559,23 +564,25 @@ export class Router {
         }
     }
 
-    private async processSendEmail(requestId: string) {
-        const validation = this._validations.get(requestId);
-        if (validation !== undefined && validation.validationStatus === EmailValidationStatus.NONE) {
+    private async processSendEmail(validation: IValidationData) {
+        if (validation.validationStatus === EmailValidationStatus.NONE) {
             const sendCode = this._codeGenerator.getCode();
             await this._emailSender.send(
                 this._validatorIndex,
                 this._validators.size,
                 sendCode,
-                validation.tx.request.email
+                validation.requestEmail
             );
             validation.sendCode = sendCode;
             validation.validationStatus = EmailValidationStatus.SENT;
+            validation.expire = ContractUtils.getTimeStamp() + 5 * 60;
+
+            await this._storage.updateSendCode(validation);
         }
     }
 
     private async processSubmit(requestId: string, receiveCode: string, res: express.Response) {
-        const validation = this._validations.get(requestId);
+        const validation = await this._storage.getValidation(requestId);
         if (validation !== undefined) {
             if (validation.validationStatus === EmailValidationStatus.SENT) {
                 if (validation.expire > ContractUtils.getTimeStamp()) {
@@ -583,11 +590,9 @@ export class Router {
                         this._validatorIndex * 2,
                         this._validatorIndex * 2 + 2
                     );
+                    await this._storage.updateReceiveCode(requestId, validation.receiveCode);
                     if (validation.sendCode === validation.receiveCode) {
-                        this.addJob({
-                            type: JobType.VOTE,
-                            requestId,
-                        });
+                        await this._storage.updateProcessStep(requestId, ProcessStep.RECEIVED_CODE);
                         return res.json(this.makeResponseData(200, "OK"));
                     } else {
                         logger.warn({
@@ -600,7 +605,8 @@ export class Router {
                         );
                     }
                 } else {
-                    validation.validationStatus = EmailValidationStatus.EXPIRED;
+                    await this._storage.updateValidationStatus(validation.requestId, EmailValidationStatus.EXPIRED);
+
                     logger.warn({
                         validatorIndex: this._validatorIndex,
                         method: "Router.processSubmit()",
@@ -672,7 +678,7 @@ export class Router {
         }
     }
 
-    private async voteAgreement(requestId: string, ballot: Ballot) {
+    private async voteAgreement(requestId: string) {
         try {
             await (await this.getContract()).connect(this.getSigner()).voteRequest(requestId);
         } catch (e: any) {
@@ -714,123 +720,95 @@ export class Router {
             this._initialized = true;
         }
 
-        const job = this.getJob();
-        if (job !== undefined) {
-            switch (job.type) {
-                case JobType.REGISTER:
+        const validations = await this._storage.getUnfinishedJob();
+        for (const validation of validations) {
+            switch (validation.processStep) {
+                case ProcessStep.RECEIVED_REGISTER:
                     logger.info({
                         validatorIndex: this._validatorIndex,
                         method: "Router.onWork()",
-                        message: `JobType.REGISTER ${job.requestId}`,
+                        message: `ProcessStep.REGISTER ${validation.requestId}`,
                     });
-                    if (job.registerData !== undefined && job.broadcastData !== undefined) {
-                        await this.addRequest(
-                            job.requestId,
-                            job.registerData.emailHash,
-                            job.registerData.address,
-                            job.registerData.signature
-                        );
-                        await this._peers.broadcast(job.broadcastData);
+                    const emailHash = ContractUtils.sha256String(validation.requestEmail);
+                    await this.addRequest(
+                        validation.requestId,
+                        emailHash,
+                        validation.requestAddress,
+                        validation.requestSignature
+                    );
+                    await this._peers.broadcast(toTransaction(validation));
 
-                        this._validations.set(job.requestId, {
-                            tx: job.broadcastData,
-                            validationStatus: EmailValidationStatus.NONE,
-                            sendCode: "",
-                            receiveCode: "",
-                            expire: ContractUtils.getTimeStamp() + 5 * 60,
-                        });
-
-                        await this.processSendEmail(job.requestId);
-                    }
+                    await this.processSendEmail(validation);
+                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.SENT_EMAIL);
 
                     if (this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode) {
-                        setTimeout(() => {
-                            this.addJob({
-                                type: JobType.VOTE,
-                                requestId: job.requestId,
-                            });
+                        setTimeout(async () => {
+                            await this._storage.updateProcessStep(validation.requestId, ProcessStep.RECEIVED_CODE);
                         }, 3000);
                     }
                     break;
 
-                case JobType.BROADCAST:
+                case ProcessStep.RECEIVED_BROADCAST:
                     logger.info({
                         validatorIndex: this._validatorIndex,
                         method: "Router.onWork()",
-                        message: `JobType.BROADCAST ${job.requestId}`,
+                        message: `ProcessStep.BROADCAST ${validation.requestId}`,
                     });
-                    if (job.broadcastData !== undefined) {
-                        this._validations.set(job.requestId, {
-                            tx: job.broadcastData,
-                            validationStatus: EmailValidationStatus.NONE,
-                            sendCode: "",
-                            receiveCode: "",
-                            expire: ContractUtils.getTimeStamp() + 5 * 60,
-                        });
 
-                        await this.processSendEmail(job.requestId);
-                    }
+                    await this.processSendEmail(validation);
+                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.SENT_EMAIL);
+
                     if (this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode) {
-                        setTimeout(() => {
-                            this.addJob({
-                                type: JobType.VOTE,
-                                requestId: job.requestId,
-                            });
+                        setTimeout(async () => {
+                            await this._storage.updateProcessStep(validation.requestId, ProcessStep.RECEIVED_CODE);
                         }, 3000);
                     }
                     break;
 
-                case JobType.VOTE:
+                case ProcessStep.SENT_EMAIL:
+                    break;
+
+                case ProcessStep.RECEIVED_CODE:
                     logger.info({
                         validatorIndex: this._validatorIndex,
                         method: "Router.onWork()",
-                        message: `JobType.VOTE ${job.requestId}`,
+                        message: `ProcessStep.RECEIVED_CODE ${validation.requestId}`,
                     });
-                    await this.voteAgreement(job.requestId, Ballot.AGREEMENT);
-                    const validation = this._validations.get(job.requestId);
-                    if (validation !== undefined) {
-                        validation.validationStatus = EmailValidationStatus.VOTED;
-                    }
-
-                    this.addJob({
-                        type: JobType.COUNT,
-                        requestId: job.requestId,
-                    });
+                    await this.voteAgreement(validation.requestId);
+                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.VOTED);
                     break;
 
-                case JobType.COUNT:
-                    const res = await (await this.getContract()).canCountVote(job.requestId);
+                case ProcessStep.VOTED:
+                    const res = await (await this.getContract()).canCountVote(validation.requestId);
                     if (res === 1) {
                         logger.info({
                             validatorIndex: this._validatorIndex,
                             method: "Router.onWork()",
-                            message: `JobType.COUNT, Counting is possible. ${job.requestId}`,
+                            message: `ProcessStep.COUNT, Counting is possible. ${validation.requestId}`,
                         });
-                        await this.countVote(job.requestId);
-                        const validation2 = this._validations.get(job.requestId);
-                        if (validation2 !== undefined) {
-                            validation2.validationStatus = EmailValidationStatus.CONFIRMED;
-                        }
+                        await this.countVote(validation.requestId);
+                        await this._storage.updateValidationStatus(
+                            validation.requestId,
+                            EmailValidationStatus.CONFIRMED
+                        );
+                        await this._storage.updateProcessStep(validation.requestId, ProcessStep.FINISHED);
                     } else if (res === 2) {
                         logger.info({
                             validatorIndex: this._validatorIndex,
                             method: "Router.onWork()",
-                            message: `JobType.COUNT, Counting is impossible. ${job.requestId}`,
-                        });
-                        this.addJob({
-                            type: JobType.COUNT,
-                            requestId: job.requestId,
+                            message: `ProcessStep.COUNT, Counting is impossible. ${validation.requestId}`,
                         });
                     } else {
                         logger.info({
                             validatorIndex: this._validatorIndex,
                             method: "Router.onWork()",
-                            message: `JobType.COUNT, Counting has already been completed. ${job.requestId}`,
+                            message: `ProcessStep.COUNT, Counting has already been completed. ${validation.requestId}`,
                         });
-                        const validation2 = this._validations.get(job.requestId);
-                        if (validation2 !== undefined) {
-                            validation2.validationStatus = EmailValidationStatus.CONFIRMED;
-                        }
+                        await this._storage.updateValidationStatus(
+                            validation.requestId,
+                            EmailValidationStatus.CONFIRMED
+                        );
+                        await this._storage.updateProcessStep(validation.requestId, ProcessStep.FINISHED);
                     }
                     break;
             }
@@ -842,13 +820,5 @@ export class Router {
             await this._peers.check();
         }
         this._oldTimeStamp = currentTime;
-    }
-
-    private addJob(job: IJob) {
-        this._jobList.push(job);
-    }
-
-    private getJob(): IJob | undefined {
-        return this._jobList.shift();
     }
 }
