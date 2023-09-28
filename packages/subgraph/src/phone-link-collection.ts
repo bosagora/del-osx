@@ -3,14 +3,13 @@ import {
   AddedRequestItem as AddedRequestItemEvent,
   RejectedRequestItem as RejectedRequestItemEvent,
   UpdatedLinkItem as UpdatedLinkItemEvent,
-} from "../generated/EmailLinkCollection/EmailLinkCollection";
-import { EmailLinkItems, EmailRequestItems } from "../generated/schema";
+} from "../generated/PhoneLinkCollection/PhoneLinkCollection";
+import { PhoneLinkItems, PhoneRequestItems } from "../generated/schema";
 
 export function handleAddedRequestItem(event: AddedRequestItemEvent): void {
-  let entity = new EmailRequestItems(event.params.id);
-  entity.email = event.params.email;
+  let entity = new PhoneRequestItems(event.params.id);
+  entity.phone = event.params.phone;
   entity.wallet = event.params.wallet;
-  entity.email = event.params.email;
   entity.status = "REQUESTED";
 
   entity.blockNumber = event.block.number;
@@ -23,13 +22,12 @@ export function handleAddedRequestItem(event: AddedRequestItemEvent): void {
 export function handleAcceptedRequestItem(
   event: AcceptedRequestItemEvent
 ): void {
-  let entity = EmailRequestItems.load(event.params.id);
+  let entity = PhoneRequestItems.load(event.params.id);
   if (entity === null) {
-    entity = new EmailRequestItems(event.params.id);
+    entity = new PhoneRequestItems(event.params.id);
   }
-  entity.email = event.params.email;
+  entity.phone = event.params.phone;
   entity.wallet = event.params.wallet;
-  entity.email = event.params.email;
   entity.status = "ACCEPTED";
 
   entity.blockNumber = event.block.number;
@@ -38,9 +36,9 @@ export function handleAcceptedRequestItem(
 
   entity.save();
 
-  let linkEntity = EmailLinkItems.load(event.params.email);
+  let linkEntity = PhoneLinkItems.load(event.params.phone);
   if (linkEntity === null) {
-    linkEntity = new EmailLinkItems(event.params.email);
+    linkEntity = new PhoneLinkItems(event.params.phone);
   }
   linkEntity.wallet = event.params.wallet;
   linkEntity.blockNumber = event.block.number;
@@ -52,13 +50,12 @@ export function handleAcceptedRequestItem(
 export function handleRejectedRequestItem(
   event: RejectedRequestItemEvent
 ): void {
-  let entity = EmailRequestItems.load(event.params.id);
+  let entity = PhoneRequestItems.load(event.params.id);
   if (entity === null) {
-    entity = new EmailRequestItems(event.params.id);
+    entity = new PhoneRequestItems(event.params.id);
   }
-  entity.email = event.params.email;
+  entity.phone = event.params.phone;
   entity.wallet = event.params.wallet;
-  entity.email = event.params.email;
   entity.status = "REJECTED";
 
   entity.blockNumber = event.block.number;
@@ -69,9 +66,9 @@ export function handleRejectedRequestItem(
 }
 
 export function handleUpdatedLinkItem(event: UpdatedLinkItemEvent): void {
-  let linkEntity = EmailLinkItems.load(event.params.email);
+  let linkEntity = PhoneLinkItems.load(event.params.phone);
   if (linkEntity === null) {
-    linkEntity = new EmailLinkItems(event.params.email);
+    linkEntity = new PhoneLinkItems(event.params.phone);
   }
   linkEntity.wallet = event.params.wallet2;
   linkEntity.blockNumber = event.block.number;

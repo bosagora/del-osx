@@ -32,4 +32,34 @@ dataSources:
           handler: handleRejectedRequestItem
         - event: UpdatedLinkItem(bytes32,address,address)
           handler: handleUpdatedLinkItem
-      file: ./src/link-collection.ts
+      file: ./src/email-link-collection.ts
+
+  - kind: ethereum
+    name: {{dataSources.PhoneLinkCollection.name}}
+    network: {{network}}
+    source:
+      address: '{{dataSources.PhoneLinkCollection.address}}'
+      abi: PhoneLinkCollection
+      startBlock: {{dataSources.PhoneLinkCollection.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - AcceptedRequestItem
+        - AddedRequestItem
+        - RejectedRequestItem
+        - UpdatedLinkItem
+      abis:
+        - name: PhoneLinkCollection
+          file:  $DMS_OSX_MODULE/artifacts/contracts/PhoneLinkCollection.sol/PhoneLinkCollection.json
+      eventHandlers:
+        - event: AcceptedRequestItem(bytes32,bytes32,address)
+          handler: handleAcceptedRequestItem
+        - event: AddedRequestItem(bytes32,bytes32,address)
+          handler: handleAddedRequestItem
+        - event: RejectedRequestItem(bytes32,bytes32,address)
+          handler: handleRejectedRequestItem
+        - event: UpdatedLinkItem(bytes32,address,address)
+          handler: handleUpdatedLinkItem
+      file: ./src/phone-link-collection.ts
