@@ -11,7 +11,7 @@ logging:
   level: ${LOGGING_LEVEL}
 
 contracts:
-  linkCollectionAddress : ${LINK_COLLECTION_ADDRESS}
+  emailLinkCollectionAddress : ${EMAIL_LINK_COLLECTION_ADDRESS}
 
 validator:
   validatorKey: ${VALIDATOR_KEY}

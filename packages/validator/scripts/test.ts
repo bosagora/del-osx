@@ -2,7 +2,7 @@ import { Config } from "../src/common/Config";
 import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { delay, TestClient, TestValidatorNode } from "../test/helper/Utility";
-import { LinkCollection } from "../typechain-types";
+import { EmailLinkCollection } from "../typechain-types";
 
 import { GasPriceManager } from "../src/contract/GasPriceManager";
 
@@ -45,17 +45,17 @@ async function main() {
     const client = new TestClient();
 
     console.log("Deploy");
-    const contractFactory = await ethers.getContractFactory("LinkCollection");
+    const contractFactory = await ethers.getContractFactory("EmailLinkCollection");
     const linkCollectionContract = (await contractFactory
         .connect(deployer)
-        .deploy(validatorWallets.map((m) => m.address))) as LinkCollection;
+        .deploy(validatorWallets.map((m) => m.address))) as EmailLinkCollection;
     await linkCollectionContract.deployTransaction.wait();
 
     console.log("Create Config");
     for (let idx = 0; idx < maxValidatorCount; idx++) {
         const config = new Config();
         config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-        config.contracts.linkCollectionAddress = linkCollectionContract.address;
+        config.contracts.emailLinkCollectionAddress = linkCollectionContract.address;
         config.validator.validatorKey = validatorWallets[idx].privateKey;
         config.validator.authenticationMode = AuthenticationMode.NoEMailKnownCode;
         config.node.protocol = "http";

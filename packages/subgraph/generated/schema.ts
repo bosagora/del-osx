@@ -11,7 +11,7 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
-export class RequestItems extends Entity {
+export class EmailRequestItems extends Entity {
   constructor(id: Bytes) {
     super();
     this.set("id", Value.fromBytes(id));
@@ -19,25 +19,25 @@ export class RequestItems extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id != null, "Cannot save RequestItems entity without an ID");
+    assert(id != null, "Cannot save EmailRequestItems entity without an ID");
     if (id) {
       assert(
         id.kind == ValueKind.BYTES,
-        `Entities of type RequestItems must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`
+        `Entities of type EmailRequestItems must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`
       );
-      store.set("RequestItems", id.toBytes().toHexString(), this);
+      store.set("EmailRequestItems", id.toBytes().toHexString(), this);
     }
   }
 
-  static loadInBlock(id: Bytes): RequestItems | null {
-    return changetype<RequestItems | null>(
-      store.get_in_block("RequestItems", id.toHexString())
+  static loadInBlock(id: Bytes): EmailRequestItems | null {
+    return changetype<EmailRequestItems | null>(
+      store.get_in_block("EmailRequestItems", id.toHexString())
     );
   }
 
-  static load(id: Bytes): RequestItems | null {
-    return changetype<RequestItems | null>(
-      store.get("RequestItems", id.toHexString())
+  static load(id: Bytes): EmailRequestItems | null {
+    return changetype<EmailRequestItems | null>(
+      store.get("EmailRequestItems", id.toHexString())
     );
   }
 
@@ -133,7 +133,7 @@ export class RequestItems extends Entity {
   }
 }
 
-export class LinkItems extends Entity {
+export class EmailLinkItems extends Entity {
   constructor(id: Bytes) {
     super();
     this.set("id", Value.fromBytes(id));
@@ -141,25 +141,25 @@ export class LinkItems extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id != null, "Cannot save LinkItems entity without an ID");
+    assert(id != null, "Cannot save EmailLinkItems entity without an ID");
     if (id) {
       assert(
         id.kind == ValueKind.BYTES,
-        `Entities of type LinkItems must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`
+        `Entities of type EmailLinkItems must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`
       );
-      store.set("LinkItems", id.toBytes().toHexString(), this);
+      store.set("EmailLinkItems", id.toBytes().toHexString(), this);
     }
   }
 
-  static loadInBlock(id: Bytes): LinkItems | null {
-    return changetype<LinkItems | null>(
-      store.get_in_block("LinkItems", id.toHexString())
+  static loadInBlock(id: Bytes): EmailLinkItems | null {
+    return changetype<EmailLinkItems | null>(
+      store.get_in_block("EmailLinkItems", id.toHexString())
     );
   }
 
-  static load(id: Bytes): LinkItems | null {
-    return changetype<LinkItems | null>(
-      store.get("LinkItems", id.toHexString())
+  static load(id: Bytes): EmailLinkItems | null {
+    return changetype<EmailLinkItems | null>(
+      store.get("EmailLinkItems", id.toHexString())
     );
   }
 

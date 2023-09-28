@@ -4,7 +4,7 @@ import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { PeerStatus } from "../src/validator/Peers";
 import { ValidatorNode } from "../src/validator/ValidatorNode";
-import { LinkCollection } from "../typechain-types";
+import { EmailLinkCollection } from "../typechain-types";
 import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
 
 import chai, { expect } from "chai";
@@ -27,13 +27,13 @@ describe("Test of ValidatorNode - NoEMailKnownCode", function () {
     const users = [user1, user2, user3];
     const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
     const emailHashes: string[] = emails.map((m) => ContractUtils.sha256String(m));
-    let linkCollectionContract: LinkCollection;
+    let linkCollectionContract: EmailLinkCollection;
 
-    const deployLinkCollection = async () => {
-        const linkCollectionFactory = await hre.ethers.getContractFactory("LinkCollection");
+    const deployEmailLinkCollection = async () => {
+        const linkCollectionFactory = await hre.ethers.getContractFactory("EmailLinkCollection");
         linkCollectionContract = (await linkCollectionFactory
             .connect(deployer)
-            .deploy(validators.map((m) => m.address))) as LinkCollection;
+            .deploy(validators.map((m) => m.address))) as EmailLinkCollection;
         await linkCollectionContract.deployed();
         await linkCollectionContract.deployTransaction.wait();
     };
@@ -47,14 +47,14 @@ describe("Test of ValidatorNode - NoEMailKnownCode", function () {
 
     context("Test ValidatorNode", () => {
         before("Deploy", async () => {
-            await deployLinkCollection();
+            await deployEmailLinkCollection();
         });
 
         before("Create Config", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
                 const config = new Config();
                 config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-                config.contracts.linkCollectionAddress = linkCollectionContract.address;
+                config.contracts.emailLinkCollectionAddress = linkCollectionContract.address;
                 config.validator.validatorKey = validators[idx].privateKey;
                 config.validator.authenticationMode = AuthenticationMode.NoEMailKnownCode;
                 config.node.protocol = "http";

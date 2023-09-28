@@ -1,5 +1,5 @@
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { LinkCollection } from "../typechain-types";
+import { EmailLinkCollection } from "../typechain-types";
 
 import "@nomiclabs/hardhat-ethers";
 import * as hre from "hardhat";
@@ -9,8 +9,8 @@ async function main() {
     const userEmail = "worldia@naver.com";
     const userWallet = new hre.ethers.Wallet("0x21ebf5db0844666c762d8e3898d68b5a9714e9eecad89146ae53861b0ba389b3");
     const userEmailHash = ContractUtils.sha256String(userEmail);
-    const factory = await hre.ethers.getContractFactory("LinkCollection");
-    const contract = (await factory.attach(process.env.LINK_COLLECTION_ADDRESS || "")) as LinkCollection;
+    const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
+    const contract = (await factory.attach(process.env.LINK_COLLECTION_ADDRESS || "")) as EmailLinkCollection;
     const item = await contract.getRequestItem(requestId);
     console.log(item.agreement);
     console.log(item.opposition);

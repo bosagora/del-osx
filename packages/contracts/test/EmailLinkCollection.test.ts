@@ -1,5 +1,5 @@
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { LinkCollection } from "../typechain-types";
+import { EmailLinkCollection } from "../typechain-types";
 
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
@@ -14,17 +14,17 @@ import { BigNumber } from "ethers";
 
 chai.use(solidity);
 
-describe("Test for LinkCollection", () => {
+describe("Test for EmailLinkCollection", () => {
     const provider = hre.waffle.provider;
     const [admin, owner, user1, user2, user3, relay, validator1, validator2, validator3] = provider.getWallets();
 
     const validators = [validator1, validator2, validator3];
-    let contract: LinkCollection;
+    let contract: EmailLinkCollection;
     let requestId: string;
 
     before(async () => {
-        const factory = await hre.ethers.getContractFactory("LinkCollection");
-        contract = (await factory.connect(admin).deploy(validators.map((m) => m.address))) as LinkCollection;
+        const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
+        contract = (await factory.connect(admin).deploy(validators.map((m) => m.address))) as EmailLinkCollection;
         await contract.deployed();
         await contract.deployTransaction.wait();
     });

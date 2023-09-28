@@ -5,12 +5,12 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: {{dataSources.LinkCollection.name}}
+    name: {{dataSources.EmailLinkCollection.name}}
     network: {{network}}
     source:
-      address: '{{dataSources.LinkCollection.address}}'
-      abi: LinkCollection
-      startBlock: {{dataSources.LinkCollection.startBlock}}
+      address: '{{dataSources.EmailLinkCollection.address}}'
+      abi: EmailLinkCollection
+      startBlock: {{dataSources.EmailLinkCollection.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -21,8 +21,8 @@ dataSources:
         - RejectedRequestItem
         - UpdatedLinkItem
       abis:
-        - name: LinkCollection
-          file:  $DMS_OSX_MODULE/artifacts/contracts/LinkCollection.sol/LinkCollection.json
+        - name: EmailLinkCollection
+          file:  $DMS_OSX_MODULE/artifacts/contracts/EmailLinkCollection.sol/EmailLinkCollection.json
       eventHandlers:
         - event: AcceptedRequestItem(bytes32,bytes32,address)
           handler: handleAcceptedRequestItem

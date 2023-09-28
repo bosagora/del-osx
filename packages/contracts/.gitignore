@@ -140,4 +140,4 @@ artifacts
 /typechain-types/
 
 *.iml
-/deployments/localhost/
+/deployments/
