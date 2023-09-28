@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// Contract for converting e-mail to wallet
-contract LinkCollection {
+contract EmailLinkCollection {
     bytes32 public constant NULL = 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
 
     mapping(bytes32 => address) private emailToAddress;

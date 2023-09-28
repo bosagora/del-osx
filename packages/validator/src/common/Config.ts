@@ -153,21 +153,22 @@ export class ValidatorConfig implements IValidatorConfig {
 }
 
 export class ContractsConfig implements IContractsConfig {
-    public linkCollectionAddress: string;
+    public emailLinkCollectionAddress: string;
 
     constructor() {
         const defaults = ContractsConfig.defaultValue();
-        this.linkCollectionAddress = defaults.linkCollectionAddress;
+        this.emailLinkCollectionAddress = defaults.emailLinkCollectionAddress;
     }
 
     public static defaultValue(): IContractsConfig {
         return {
-            linkCollectionAddress: process.env.EMAIL_LINKER_CONTRACT_ADDRESS || "",
+            emailLinkCollectionAddress: process.env.EMAIL_LINKER_CONTRACT_ADDRESS || "",
         };
     }
 
     public readFromObject(config: IContractsConfig) {
-        if (config.linkCollectionAddress !== undefined) this.linkCollectionAddress = config.linkCollectionAddress;
+        if (config.emailLinkCollectionAddress !== undefined)
+            this.emailLinkCollectionAddress = config.emailLinkCollectionAddress;
     }
 }
 
@@ -242,7 +243,7 @@ export interface IValidatorConfig {
 }
 
 export interface IContractsConfig {
-    linkCollectionAddress: string;
+    emailLinkCollectionAddress: string;
 }
 
 export interface ISMTPConfig {

@@ -1,4 +1,4 @@
-import { LinkCollection } from "../../typechain-types";
+import { EmailLinkCollection } from "../../typechain-types";
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
@@ -35,7 +35,7 @@ export class Router {
     private readonly _storage: Storage;
     private readonly _wallet: Wallet;
     private _peers: Peers;
-    private _contract: LinkCollection | undefined;
+    private _contract: EmailLinkCollection | undefined;
 
     private readonly nodeInfo: ValidatorNodeInfo;
 
@@ -83,10 +83,10 @@ export class Router {
         });
     }
 
-    private async getContract(): Promise<LinkCollection> {
+    private async getContract(): Promise<EmailLinkCollection> {
         if (this._contract === undefined) {
-            const factory = await hre.ethers.getContractFactory("LinkCollection");
-            this._contract = factory.attach(this._config.contracts.linkCollectionAddress) as LinkCollection;
+            const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
+            this._contract = factory.attach(this._config.contracts.emailLinkCollectionAddress) as EmailLinkCollection;
         }
         return this._contract;
     }

@@ -2,7 +2,7 @@ import { Config } from "../src/common/Config";
 import { Storage } from "../src/storage/Storages";
 import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { LinkCollection } from "../typechain-types";
+import { EmailLinkCollection } from "../typechain-types";
 import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
 
 import chai, { expect } from "chai";
@@ -25,13 +25,13 @@ describe("Test of ValidatorNode", function () {
     const users = [user1, user2, user3];
     const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
     const emailHashes: string[] = emails.map((m) => ContractUtils.sha256String(m));
-    let linkCollectionContract: LinkCollection;
+    let linkCollectionContract: EmailLinkCollection;
 
-    const deployLinkCollection = async () => {
-        const linkCollectionFactory = await hre.ethers.getContractFactory("LinkCollection");
+    const deployEmailLinkCollection = async () => {
+        const linkCollectionFactory = await hre.ethers.getContractFactory("EmailLinkCollection");
         linkCollectionContract = (await linkCollectionFactory
             .connect(deployer)
-            .deploy(validators.map((m) => m.address))) as LinkCollection;
+            .deploy(validators.map((m) => m.address))) as EmailLinkCollection;
         await linkCollectionContract.deployed();
         await linkCollectionContract.deployTransaction.wait();
     };
@@ -44,13 +44,13 @@ describe("Test of ValidatorNode", function () {
 
     context("Test ValidatorNode", () => {
         before("Deploy", async () => {
-            await deployLinkCollection();
+            await deployEmailLinkCollection();
         });
 
         before("Create Config", async () => {
             config = new Config();
             config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-            config.contracts.linkCollectionAddress = linkCollectionContract.address;
+            config.contracts.emailLinkCollectionAddress = linkCollectionContract.address;
             config.validator.validatorKey = validator1.privateKey;
             config.validator.authenticationMode = AuthenticationMode.NoEMailKnownCode;
         });

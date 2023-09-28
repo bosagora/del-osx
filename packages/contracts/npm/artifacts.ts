@@ -1,8 +1,8 @@
 // JSON artifacts of the contracts
 
 // @ts-ignore
-import * as LinkCollection from "../artifacts/contracts/LinkCollection.sol/LinkCollection.json";
+import * as EmailLinkCollection from "../artifacts/contracts/EmailLinkCollection.sol/EmailLinkCollection.json";
 
 export default {
-    LinkCollection,
+    EmailLinkCollection,
 };

@@ -114,7 +114,7 @@ export class UpdatedLinkItem__Params {
   }
 }
 
-export class LinkCollection__getRequestItemResult {
+export class EmailLinkCollection__getRequestItemResult {
   value0: BigInt;
   value1: i32;
 
@@ -142,7 +142,7 @@ export class LinkCollection__getRequestItemResult {
   }
 }
 
-export class LinkCollection__getValidatorResultValue0Struct extends ethereum.Tuple {
+export class EmailLinkCollection__getValidatorResultValue0Struct extends ethereum.Tuple {
   get validator(): Address {
     return this[0].toAddress();
   }
@@ -160,7 +160,7 @@ export class LinkCollection__getValidatorResultValue0Struct extends ethereum.Tup
   }
 }
 
-export class LinkCollection__getValidatorsResultValue0Struct extends ethereum.Tuple {
+export class EmailLinkCollection__getValidatorsResultValue0Struct extends ethereum.Tuple {
   get validator(): Address {
     return this[0].toAddress();
   }
@@ -178,9 +178,9 @@ export class LinkCollection__getValidatorsResultValue0Struct extends ethereum.Tu
   }
 }
 
-export class LinkCollection extends ethereum.SmartContract {
-  static bind(address: Address): LinkCollection {
-    return new LinkCollection("LinkCollection", address);
+export class EmailLinkCollection extends ethereum.SmartContract {
+  static bind(address: Address): EmailLinkCollection {
+    return new EmailLinkCollection("EmailLinkCollection", address);
   }
 
   NULL(): Bytes {
@@ -242,14 +242,14 @@ export class LinkCollection extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddressArray());
   }
 
-  getRequestItem(_id: Bytes): LinkCollection__getRequestItemResult {
+  getRequestItem(_id: Bytes): EmailLinkCollection__getRequestItemResult {
     let result = super.call(
       "getRequestItem",
       "getRequestItem(bytes32):(uint32,uint8)",
       [ethereum.Value.fromFixedBytes(_id)]
     );
 
-    return new LinkCollection__getRequestItemResult(
+    return new EmailLinkCollection__getRequestItemResult(
       result[0].toBigInt(),
       result[1].toI32()
     );
@@ -257,7 +257,7 @@ export class LinkCollection extends ethereum.SmartContract {
 
   try_getRequestItem(
     _id: Bytes
-  ): ethereum.CallResult<LinkCollection__getRequestItemResult> {
+  ): ethereum.CallResult<EmailLinkCollection__getRequestItemResult> {
     let result = super.tryCall(
       "getRequestItem",
       "getRequestItem(bytes32):(uint32,uint8)",
@@ -268,28 +268,30 @@ export class LinkCollection extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(
-      new LinkCollection__getRequestItemResult(
+      new EmailLinkCollection__getRequestItemResult(
         value[0].toBigInt(),
         value[1].toI32()
       )
     );
   }
 
-  getValidator(_idx: BigInt): LinkCollection__getValidatorResultValue0Struct {
+  getValidator(
+    _idx: BigInt
+  ): EmailLinkCollection__getValidatorResultValue0Struct {
     let result = super.call(
       "getValidator",
       "getValidator(uint256):((address,uint256,string,uint8))",
       [ethereum.Value.fromUnsignedBigInt(_idx)]
     );
 
-    return changetype<LinkCollection__getValidatorResultValue0Struct>(
+    return changetype<EmailLinkCollection__getValidatorResultValue0Struct>(
       result[0].toTuple()
     );
   }
 
   try_getValidator(
     _idx: BigInt
-  ): ethereum.CallResult<LinkCollection__getValidatorResultValue0Struct> {
+  ): ethereum.CallResult<EmailLinkCollection__getValidatorResultValue0Struct> {
     let result = super.tryCall(
       "getValidator",
       "getValidator(uint256):((address,uint256,string,uint8))",
@@ -300,7 +302,7 @@ export class LinkCollection extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(
-      changetype<LinkCollection__getValidatorResultValue0Struct>(
+      changetype<EmailLinkCollection__getValidatorResultValue0Struct>(
         value[0].toTuple()
       )
     );
@@ -329,7 +331,7 @@ export class LinkCollection extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
-  getValidators(): Array<LinkCollection__getValidatorsResultValue0Struct> {
+  getValidators(): Array<EmailLinkCollection__getValidatorsResultValue0Struct> {
     let result = super.call(
       "getValidators",
       "getValidators():((address,uint256,string,uint8)[])",
@@ -337,12 +339,12 @@ export class LinkCollection extends ethereum.SmartContract {
     );
 
     return result[0].toTupleArray<
-      LinkCollection__getValidatorsResultValue0Struct
+      EmailLinkCollection__getValidatorsResultValue0Struct
     >();
   }
 
   try_getValidators(): ethereum.CallResult<
-    Array<LinkCollection__getValidatorsResultValue0Struct>
+    Array<EmailLinkCollection__getValidatorsResultValue0Struct>
   > {
     let result = super.tryCall(
       "getValidators",
@@ -354,7 +356,9 @@ export class LinkCollection extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(
-      value[0].toTupleArray<LinkCollection__getValidatorsResultValue0Struct>()
+      value[0].toTupleArray<
+        EmailLinkCollection__getValidatorsResultValue0Struct
+      >()
     );
   }
 
