@@ -1,11 +1,14 @@
 {
-  "bosagora_mainnet": {
-    "EmailLinkCollection": "0xf1CEFe1b28ee6768597f177eca6616aD44C96418"
+  "bosagora_mainnet":  {
+    "EmailLinkCollection": "0xf1CEFe1b28ee6768597f177eca6616aD44C96418",
+    "PhoneLinkCollection": "0xaE7018CaF086EB2Ca62eAA7b91B61dDA6b046F70"
   },
-  "bosagora_testnet": {
-    "EmailLinkCollection": "0xf1CEFe1b28ee6768597f177eca6616aD44C96418"
+  "bosagora_testnet":  {
+    "EmailLinkCollection": "0xf1CEFe1b28ee6768597f177eca6616aD44C96418",
+    "PhoneLinkCollection": "0xaE7018CaF086EB2Ca62eAA7b91B61dDA6b046F70"
   },
   "bosagora_devnet": {
-    "EmailLinkCollection": "0xf1CEFe1b28ee6768597f177eca6616aD44C96418"
+    "EmailLinkCollection": "0xf1CEFe1b28ee6768597f177eca6616aD44C96418",
+    "PhoneLinkCollection": "0xaE7018CaF086EB2Ca62eAA7b91B61dDA6b046F70"
   }
 }

@@ -44,6 +44,19 @@ export class ContractUtils {
         return "0x" + data.toString("hex");
     }
 
+    public static getPhoneHash(phone: string): string {
+        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+            ["string", "string"],
+            ["BOSagora Phone Number", phone]
+        );
+        return hre.ethers.utils.keccak256(encodedResult);
+    }
+
+    public static getEmailHash(phone: string): string {
+        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(["string", "string"], ["BOSagora Email", phone]);
+        return hre.ethers.utils.keccak256(encodedResult);
+    }
+
     public static getRequestId(emailHash: string, address: string, nonce: BigNumberish): string {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "address", "uint256", "bytes32"],

@@ -1,5 +1,5 @@
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { EmailLinkCollection } from "../typechain-types";
+import { PhoneLinkCollection } from "../typechain-types";
 
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
@@ -14,17 +14,17 @@ import { BigNumber } from "ethers";
 
 chai.use(solidity);
 
-describe("Test for EmailLinkCollection", () => {
+describe("Test for PhoneLinkCollection", () => {
     const provider = hre.waffle.provider;
     const [admin, owner, user1, user2, user3, relay, validator1, validator2, validator3] = provider.getWallets();
 
     const validators = [validator1, validator2, validator3];
-    let contract: EmailLinkCollection;
+    let contract: PhoneLinkCollection;
     let requestId: string;
 
     before(async () => {
-        const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
-        contract = (await factory.connect(admin).deploy(validators.map((m) => m.address))) as EmailLinkCollection;
+        const factory = await hre.ethers.getContractFactory("PhoneLinkCollection");
+        contract = (await factory.connect(admin).deploy(validators.map((m) => m.address))) as PhoneLinkCollection;
         await contract.deployed();
         await contract.deployTransaction.wait();
     });
@@ -32,8 +32,8 @@ describe("Test for EmailLinkCollection", () => {
     it("Add an request item", async () => {
         const nonce = await contract.nonceOf(user1.address);
         assert.deepStrictEqual(nonce.toString(), "0");
-        const email = "abc@example.com";
-        const hash = ContractUtils.getEmailHash(email);
+        const phone = "08201012341234";
+        const hash = ContractUtils.getPhoneHash(phone);
         const signature = await ContractUtils.sign(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
@@ -45,8 +45,8 @@ describe("Test for EmailLinkCollection", () => {
     });
 
     it("Vote of request item", async () => {
-        const email = "abc@example.com";
-        const hash = ContractUtils.getEmailHash(email);
+        const phone = "08201012341234";
+        const hash = ContractUtils.getPhoneHash(phone);
         await contract.connect(validator1).voteRequest(requestId);
         await contract.connect(validator2).voteRequest(requestId);
 
@@ -55,24 +55,24 @@ describe("Test for EmailLinkCollection", () => {
             .withArgs(requestId, hash, user1.address);
 
         assert.deepStrictEqual(await contract.toAddress(hash), user1.address);
-        assert.deepStrictEqual(await contract.toEmail(user1.address), hash);
+        assert.deepStrictEqual(await contract.toPhone(user1.address), hash);
     });
 
-    it("Add an item with the same email", async () => {
+    it("Add an item with the same phone", async () => {
         const nonce = await contract.nonceOf(user2.address);
-        const email = "abc@example.com";
-        const hash = ContractUtils.getEmailHash(email);
+        const phone = "08201012341234";
+        const hash = ContractUtils.getPhoneHash(phone);
         const signature = await ContractUtils.sign(user2, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
         await expect(
             contract.connect(validators[1]).addRequest(requestId, hash, user2.address, signature)
-        ).to.be.revertedWith("Invalid email hash");
+        ).to.be.revertedWith("Invalid phone hash");
     });
 
     it("Add an item with the same address", async () => {
         const nonce = await contract.nonceOf(user1.address);
-        const email = "def@example.com";
-        const hash = ContractUtils.getEmailHash(email);
+        const phone = "08201012345678";
+        const hash = ContractUtils.getPhoneHash(phone);
         const signature = await ContractUtils.sign(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
@@ -81,8 +81,8 @@ describe("Test for EmailLinkCollection", () => {
     });
 
     it("Update an item", async () => {
-        const email = "abc@example.com";
-        const hash = ContractUtils.getEmailHash(email);
+        const phone = "08201012341234";
+        const hash = ContractUtils.getPhoneHash(phone);
         const nonce1 = await contract.nonceOf(user1.address);
         const signature1 = await ContractUtils.sign(user1, hash, nonce1);
 
@@ -93,18 +93,18 @@ describe("Test for EmailLinkCollection", () => {
             .to.emit(contract, "UpdatedLinkItem")
             .withArgs(hash, user1.address, user2.address);
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
-        assert.deepStrictEqual(await contract.toEmail(user2.address), hash);
+        assert.deepStrictEqual(await contract.toPhone(user2.address), hash);
     });
 
     it("Check Null", async () => {
-        const email = "";
-        const hash = ContractUtils.getEmailHash(email);
-        expect(hash).to.equal("0xd669bffe0491667304d87185db312d6477ed1f0fa95a26ff5405a90e6dddc0d6");
+        const phone = "";
+        const hash = ContractUtils.getPhoneHash(phone);
+        expect(hash).to.equal("0x32105b1d0b88ada155176b58ee08b45c31e4f2f7337475831982c313533b880c");
         const nonce = await contract.nonceOf(user3.address);
         const signature = await ContractUtils.sign(user3, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user3.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user3.address, signature)).to.be.revertedWith(
-            "Invalid email hash"
+            "Invalid phone hash"
         );
     });
 

@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// Contract for converting e-mail to wallet
-contract EmailLinkCollection {
-    bytes32 public constant NULL = 0xd669bffe0491667304d87185db312d6477ed1f0fa95a26ff5405a90e6dddc0d6;
+contract PhoneLinkCollection {
+    bytes32 public constant NULL = 0x32105b1d0b88ada155176b58ee08b45c31e4f2f7337475831982c313533b880c;
 
-    mapping(bytes32 => address) private emailToAddress;
-    mapping(address => bytes32) private addressToEmail;
+    mapping(bytes32 => address) private phoneToAddress;
+    mapping(address => bytes32) private addressToPhone;
     mapping(address => uint256) private nonce;
 
     /// @notice 요청 아이템의 상태코드
@@ -22,7 +22,7 @@ contract EmailLinkCollection {
 
     struct RequestItem {
         bytes32 id;
-        bytes32 email;
+        bytes32 phone;
         address wallet;
         bytes signature;
         uint32 agreement;
@@ -51,13 +51,13 @@ contract EmailLinkCollection {
     address[] private validatorAddresses;
 
     /// @notice 등록요청인 완료된 후 발생되는 이벤트
-    event AddedRequestItem(bytes32 id, bytes32 email, address wallet);
+    event AddedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 등록요청이 승인된 후 발생되는 이벤트
-    event AcceptedRequestItem(bytes32 id, bytes32 email, address wallet);
+    event AcceptedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 등록요청이 거부된 후 발생되는 이벤트
-    event RejectedRequestItem(bytes32 id, bytes32 email, address wallet);
+    event RejectedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 항목이 업데이트 후 발생되는 이벤트
-    event UpdatedLinkItem(bytes32 email, address wallet1, address wallet2);
+    event UpdatedLinkItem(bytes32 phone, address wallet1, address wallet2);
 
     /// @notice 생성자
     /// @param _validators 검증자들
@@ -82,40 +82,40 @@ contract EmailLinkCollection {
         _;
     }
 
-    /// @notice 이메일-지갑주소 항목을 업데이트 한다
-    /// @param _email 이메일의 해시
+    /// @notice 휴대전화번호-지갑주소 항목을 업데이트 한다
+    /// @param _phone 휴대전화번호의 해시
     /// @param _wallet1 현재 지갑주소
     /// @param _signature1 현재 지갑주소의 서명
     /// @param _wallet2 새로운 지갑주소
     /// @param _signature2 새로운 지갑주소의 서명
     function update(
-        bytes32 _email,
+        bytes32 _phone,
         address _wallet1,
         bytes calldata _signature1,
         address _wallet2,
         bytes calldata _signature2
     ) public {
-        require(_email != NULL, "Invalid email hash");
-        bytes32 dataHash1 = keccak256(abi.encode(_email, _wallet1, nonce[_wallet1]));
+        require(_phone != NULL, "Invalid phone hash");
+        bytes32 dataHash1 = keccak256(abi.encode(_phone, _wallet1, nonce[_wallet1]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), _signature1) == _wallet1, "Invalid signature");
 
-        bytes32 dataHash2 = keccak256(abi.encode(_email, _wallet2, nonce[_wallet2]));
+        bytes32 dataHash2 = keccak256(abi.encode(_phone, _wallet2, nonce[_wallet2]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "Invalid signature");
 
-        require(emailToAddress[_email] == _wallet1, "Invalid email hash");
-        require(addressToEmail[_wallet1] == _email, "Invalid address");
-        require(addressToEmail[_wallet2] == bytes32(0x00), "Invalid address");
+        require(phoneToAddress[_phone] == _wallet1, "Invalid phone hash");
+        require(addressToPhone[_wallet1] == _phone, "Invalid address");
+        require(addressToPhone[_wallet2] == bytes32(0x00), "Invalid address");
         require(_wallet1 != _wallet2, "Invalid address");
 
-        delete addressToEmail[_wallet1];
+        delete addressToPhone[_wallet1];
 
-        emailToAddress[_email] = _wallet2;
-        addressToEmail[_wallet2] = _email;
+        phoneToAddress[_phone] = _wallet2;
+        addressToPhone[_wallet2] = _phone;
 
         nonce[_wallet1]++;
         nonce[_wallet2]++;
 
-        emit UpdatedLinkItem(_email, _wallet1, _wallet2);
+        emit UpdatedLinkItem(_phone, _wallet1, _wallet2);
     }
 
     /// @notice 이용할 수 있는 아이디 인지 알려준다.
@@ -125,33 +125,33 @@ contract EmailLinkCollection {
         else return false;
     }
 
-    /// @notice 이메일-지갑주소 항목의 등록을 요청한다
+    /// @notice 휴대전화번호-지갑주소 항목의 등록을 요청한다
     /// @param _id 요청 아이디
-    /// @param _email 이메일의 해시
+    /// @param _phone 휴대전화번호의 해시
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
-    function addRequest(bytes32 _id, bytes32 _email, address _wallet, bytes calldata _signature) public {
+    function addRequest(bytes32 _id, bytes32 _phone, address _wallet, bytes calldata _signature) public {
         require(requests[_id].status == RequestStatus.INVALID, "Invalid ID");
-        require(_email != NULL, "Invalid email hash");
-        bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));
+        require(_phone != NULL, "Invalid phone hash");
+        bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
-        require(emailToAddress[_email] == address(0x00), "Invalid email hash");
-        require(addressToEmail[_wallet] == bytes32(0x00), "Invalid address");
+        require(phoneToAddress[_phone] == address(0x00), "Invalid phone hash");
+        require(addressToPhone[_wallet] == bytes32(0x00), "Invalid address");
 
         nonce[_wallet]++;
 
         requests[_id].id = _id;
-        requests[_id].email = _email;
+        requests[_id].phone = _phone;
         requests[_id].wallet = _wallet;
         requests[_id].signature = _signature;
         requests[_id].status = RequestStatus.REQUESTED;
         requestIds.push(_id);
 
-        emit AddedRequestItem(_id, _email, _wallet);
+        emit AddedRequestItem(_id, _phone, _wallet);
     }
 
-    /// @notice 검증자들이 이메일 검증결과를 등록한다.
+    /// @notice 검증자들이 휴대전화번호 검증결과를 등록한다.
     /// @param _id 요청 아이디
     function voteRequest(bytes32 _id) public onlyValidator {
         require(requests[_id].status != RequestStatus.INVALID, "Invalid ID");
@@ -184,14 +184,14 @@ contract EmailLinkCollection {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
-                if (emailToAddress[req.email] == address(0x00) && addressToEmail[req.wallet] == bytes32(0x00)) {
-                    emailToAddress[req.email] = req.wallet;
-                    addressToEmail[req.wallet] = req.email;
+                if (phoneToAddress[req.phone] == address(0x00) && addressToPhone[req.wallet] == bytes32(0x00)) {
+                    phoneToAddress[req.phone] = req.wallet;
+                    addressToPhone[req.wallet] = req.phone;
                     req.status = RequestStatus.ACCEPTED;
-                    emit AcceptedRequestItem(req.id, req.email, req.wallet);
+                    emit AcceptedRequestItem(req.id, req.phone, req.wallet);
                 } else {
                     req.status = RequestStatus.REJECTED;
-                    emit RejectedRequestItem(req.id, req.email, req.wallet);
+                    emit RejectedRequestItem(req.id, req.phone, req.wallet);
                 }
             }
         }
@@ -204,16 +204,16 @@ contract EmailLinkCollection {
         validators[msg.sender].endpoint = _endpoint;
     }
 
-    /// @notice 이메일해시와 연결된 지갑주소를 리턴한다.
-    /// @param _email 이메일의 해시
-    function toAddress(bytes32 _email) public view returns (address) {
-        return emailToAddress[_email];
+    /// @notice 휴대전화번호해시와 연결된 지갑주소를 리턴한다.
+    /// @param _phone 휴대전화번호의 해시
+    function toAddress(bytes32 _phone) public view returns (address) {
+        return phoneToAddress[_phone];
     }
 
-    /// @notice 지갑주소와 연결된 이메일해시를 리턴한다.
+    /// @notice 지갑주소와 연결된 휴대전화번호해시를 리턴한다.
     /// @param _wallet 지갑주소
-    function toEmail(address _wallet) public view returns (bytes32) {
-        return addressToEmail[_wallet];
+    function toPhone(address _wallet) public view returns (bytes32) {
+        return addressToPhone[_wallet];
     }
 
     /// @notice nonce를  리턴한다

@@ -22,3 +22,28 @@ type EmailLinkItems @entity {
   blockTimestamp: BigInt!
   transactionHash: Bytes!
 }
+
+enum PhoneRequestStatus {
+  INVALID,
+  REQUESTED,
+  ACCEPTED,
+  REJECTED
+}
+
+type PhoneRequestItems @entity {
+  id: Bytes! # id
+  phone: Bytes! # bytes32
+  wallet: Bytes! # address
+  status: EmailRequestStatus!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PhoneLinkItems @entity {
+  id: Bytes! # phone
+  wallet: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
