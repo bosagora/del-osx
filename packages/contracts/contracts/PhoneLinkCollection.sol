@@ -56,8 +56,6 @@ contract PhoneLinkCollection {
     event AcceptedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 등록요청이 거부된 후 발생되는 이벤트
     event RejectedRequestItem(bytes32 id, bytes32 phone, address wallet);
-    /// @notice 항목이 업데이트 후 발생되는 이벤트
-    event UpdatedLinkItem(bytes32 phone, address wallet1, address wallet2);
 
     /// @notice 생성자
     /// @param _validators 검증자들
@@ -82,42 +80,6 @@ contract PhoneLinkCollection {
         _;
     }
 
-    /// @notice 휴대전화번호-지갑주소 항목을 업데이트 한다
-    /// @param _phone 휴대전화번호의 해시
-    /// @param _wallet1 현재 지갑주소
-    /// @param _signature1 현재 지갑주소의 서명
-    /// @param _wallet2 새로운 지갑주소
-    /// @param _signature2 새로운 지갑주소의 서명
-    function update(
-        bytes32 _phone,
-        address _wallet1,
-        bytes calldata _signature1,
-        address _wallet2,
-        bytes calldata _signature2
-    ) public {
-        require(_phone != NULL, "Invalid phone hash");
-        bytes32 dataHash1 = keccak256(abi.encode(_phone, _wallet1, nonce[_wallet1]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), _signature1) == _wallet1, "Invalid signature");
-
-        bytes32 dataHash2 = keccak256(abi.encode(_phone, _wallet2, nonce[_wallet2]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "Invalid signature");
-
-        require(phoneToAddress[_phone] == _wallet1, "Invalid phone hash");
-        require(addressToPhone[_wallet1] == _phone, "Invalid address");
-        require(addressToPhone[_wallet2] == bytes32(0x00), "Invalid address");
-        require(_wallet1 != _wallet2, "Invalid address");
-
-        delete addressToPhone[_wallet1];
-
-        phoneToAddress[_phone] = _wallet2;
-        addressToPhone[_wallet2] = _phone;
-
-        nonce[_wallet1]++;
-        nonce[_wallet2]++;
-
-        emit UpdatedLinkItem(_phone, _wallet1, _wallet2);
-    }
-
     /// @notice 이용할 수 있는 아이디 인지 알려준다.
     /// @param _id 요청 아이디
     function isAvailable(bytes32 _id) public view returns (bool) {
@@ -136,7 +98,6 @@ contract PhoneLinkCollection {
         bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
-        require(phoneToAddress[_phone] == address(0x00), "Invalid phone hash");
         require(addressToPhone[_wallet] == bytes32(0x00), "Invalid address");
 
         nonce[_wallet]++;
@@ -184,7 +145,11 @@ contract PhoneLinkCollection {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
-                if (phoneToAddress[req.phone] == address(0x00) && addressToPhone[req.wallet] == bytes32(0x00)) {
+                if (addressToPhone[req.wallet] == bytes32(0x00)) {
+                    address oldWallet = phoneToAddress[req.phone];
+                    if (oldWallet != address(0x00)) {
+                        delete addressToPhone[oldWallet];
+                    }
                     phoneToAddress[req.phone] = req.wallet;
                     addressToPhone[req.wallet] = req.phone;
                     req.status = RequestStatus.ACCEPTED;

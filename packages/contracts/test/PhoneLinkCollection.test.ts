@@ -34,7 +34,7 @@ describe("Test for PhoneLinkCollection", () => {
         assert.deepStrictEqual(nonce.toString(), "0");
         const phone = "08201012341234";
         const hash = ContractUtils.getPhoneHash(phone);
-        const signature = await ContractUtils.sign(user1, hash, nonce);
+        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature))
@@ -58,22 +58,11 @@ describe("Test for PhoneLinkCollection", () => {
         assert.deepStrictEqual(await contract.toPhone(user1.address), hash);
     });
 
-    it("Add an item with the same phone", async () => {
-        const nonce = await contract.nonceOf(user2.address);
-        const phone = "08201012341234";
-        const hash = ContractUtils.getPhoneHash(phone);
-        const signature = await ContractUtils.sign(user2, hash, nonce);
-        requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
-        await expect(
-            contract.connect(validators[1]).addRequest(requestId, hash, user2.address, signature)
-        ).to.be.revertedWith("Invalid phone hash");
-    });
-
     it("Add an item with the same address", async () => {
         const nonce = await contract.nonceOf(user1.address);
         const phone = "08201012345678";
         const hash = ContractUtils.getPhoneHash(phone);
-        const signature = await ContractUtils.sign(user1, hash, nonce);
+        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
             "Invalid address"
@@ -83,15 +72,28 @@ describe("Test for PhoneLinkCollection", () => {
     it("Update an item", async () => {
         const phone = "08201012341234";
         const hash = ContractUtils.getPhoneHash(phone);
-        const nonce1 = await contract.nonceOf(user1.address);
-        const signature1 = await ContractUtils.sign(user1, hash, nonce1);
 
-        const nonce2 = await contract.nonceOf(user2.address);
-        const signature2 = await ContractUtils.sign(user2, hash, nonce2);
+        const nonce = await contract.nonceOf(user2.address);
+        const signature = await ContractUtils.signRequestHash(user2, hash, nonce);
+        requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
+        expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
+        await expect(contract.connect(relay).addRequest(requestId, hash, user2.address, signature))
+            .to.emit(contract, "AddedRequestItem")
+            .withArgs(requestId, hash, user2.address);
+        assert.deepStrictEqual((await contract.nonceOf(user2.address)).toString(), "1");
+        expect(await contract.connect(relay).isAvailable(requestId)).to.equal(false);
+    });
 
-        await expect(contract.connect(relay).update(hash, user1.address, signature1, user2.address, signature2))
-            .to.emit(contract, "UpdatedLinkItem")
-            .withArgs(hash, user1.address, user2.address);
+    it("Vote of update item", async () => {
+        const phone = "08201012341234";
+        const hash = ContractUtils.getPhoneHash(phone);
+        await contract.connect(validator1).voteRequest(requestId);
+        await contract.connect(validator2).voteRequest(requestId);
+
+        await expect(contract.connect(validator1).countVote(requestId))
+            .to.emit(contract, "AcceptedRequestItem")
+            .withArgs(requestId, hash, user2.address);
+
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
         assert.deepStrictEqual(await contract.toPhone(user2.address), hash);
     });
@@ -101,7 +103,7 @@ describe("Test for PhoneLinkCollection", () => {
         const hash = ContractUtils.getPhoneHash(phone);
         expect(hash).to.equal("0x32105b1d0b88ada155176b58ee08b45c31e4f2f7337475831982c313533b880c");
         const nonce = await contract.nonceOf(user3.address);
-        const signature = await ContractUtils.sign(user3, hash, nonce);
+        const signature = await ContractUtils.signRequestHash(user3, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user3.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user3.address, signature)).to.be.revertedWith(
             "Invalid phone hash"

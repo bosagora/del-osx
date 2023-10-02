@@ -4,8 +4,8 @@ import { EmailLinkCollection } from "../typechain-types";
 import "@nomiclabs/hardhat-ethers";
 import * as hre from "hardhat";
 
-import URI from "urijs";
 import axios, { AxiosInstance } from "axios";
+import URI from "urijs";
 
 async function main() {
     const userEmail = "worldia@naver.com";
@@ -15,7 +15,7 @@ async function main() {
     const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
     const contract = (await factory.attach(process.env.LINK_COLLECTION_ADDRESS || "")) as EmailLinkCollection;
     const nonce = await contract.nonceOf(userWallet.address);
-    const signature = await ContractUtils.signRequestData(userWallet, userEmail, nonce);
+    const signature = await ContractUtils.signRequestEmail(userWallet, userEmail, nonce);
 
     const url = URI(validatorNodeURL).filename("request").toString();
     const client = axios.create();

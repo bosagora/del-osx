@@ -34,7 +34,7 @@ describe("Test for EmailLinkCollection", () => {
         assert.deepStrictEqual(nonce.toString(), "0");
         const email = "abc@example.com";
         const hash = ContractUtils.getEmailHash(email);
-        const signature = await ContractUtils.sign(user1, hash, nonce);
+        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature))
@@ -58,22 +58,11 @@ describe("Test for EmailLinkCollection", () => {
         assert.deepStrictEqual(await contract.toEmail(user1.address), hash);
     });
 
-    it("Add an item with the same email", async () => {
-        const nonce = await contract.nonceOf(user2.address);
-        const email = "abc@example.com";
-        const hash = ContractUtils.getEmailHash(email);
-        const signature = await ContractUtils.sign(user2, hash, nonce);
-        requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
-        await expect(
-            contract.connect(validators[1]).addRequest(requestId, hash, user2.address, signature)
-        ).to.be.revertedWith("Invalid email hash");
-    });
-
     it("Add an item with the same address", async () => {
         const nonce = await contract.nonceOf(user1.address);
         const email = "def@example.com";
         const hash = ContractUtils.getEmailHash(email);
-        const signature = await ContractUtils.sign(user1, hash, nonce);
+        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
             "Invalid address"
@@ -83,15 +72,27 @@ describe("Test for EmailLinkCollection", () => {
     it("Update an item", async () => {
         const email = "abc@example.com";
         const hash = ContractUtils.getEmailHash(email);
-        const nonce1 = await contract.nonceOf(user1.address);
-        const signature1 = await ContractUtils.sign(user1, hash, nonce1);
+        const nonce = await contract.nonceOf(user2.address);
+        const signature = await ContractUtils.signRequestHash(user2, hash, nonce);
 
-        const nonce2 = await contract.nonceOf(user2.address);
-        const signature2 = await ContractUtils.sign(user2, hash, nonce2);
+        requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
+        expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
+        await expect(contract.connect(relay).addRequest(requestId, hash, user2.address, signature))
+            .to.emit(contract, "AddedRequestItem")
+            .withArgs(requestId, hash, user2.address);
+        expect(await contract.connect(relay).isAvailable(requestId)).to.equal(false);
+    });
 
-        await expect(contract.connect(relay).update(hash, user1.address, signature1, user2.address, signature2))
-            .to.emit(contract, "UpdatedLinkItem")
-            .withArgs(hash, user1.address, user2.address);
+    it("Vote of update item", async () => {
+        const email = "abc@example.com";
+        const hash = ContractUtils.getEmailHash(email);
+        await contract.connect(validator1).voteRequest(requestId);
+        await contract.connect(validator2).voteRequest(requestId);
+
+        await expect(contract.connect(validator1).countVote(requestId))
+            .to.emit(contract, "AcceptedRequestItem")
+            .withArgs(requestId, hash, user2.address);
+
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
         assert.deepStrictEqual(await contract.toEmail(user2.address), hash);
     });
@@ -101,7 +102,7 @@ describe("Test for EmailLinkCollection", () => {
         const hash = ContractUtils.getEmailHash(email);
         expect(hash).to.equal("0xd669bffe0491667304d87185db312d6477ed1f0fa95a26ff5405a90e6dddc0d6");
         const nonce = await contract.nonceOf(user3.address);
-        const signature = await ContractUtils.sign(user3, hash, nonce);
+        const signature = await ContractUtils.signRequestHash(user3, hash, nonce);
         requestId = ContractUtils.getRequestId(hash, user3.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user3.address, signature)).to.be.revertedWith(
             "Invalid email hash"

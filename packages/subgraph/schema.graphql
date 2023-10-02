@@ -34,7 +34,7 @@ type PhoneRequestItems @entity {
   id: Bytes! # id
   phone: Bytes! # bytes32
   wallet: Bytes! # address
-  status: EmailRequestStatus!
+  status: PhoneRequestStatus!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

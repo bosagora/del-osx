@@ -19,7 +19,6 @@ dataSources:
         - AcceptedRequestItem
         - AddedRequestItem
         - RejectedRequestItem
-        - UpdatedLinkItem
       abis:
         - name: EmailLinkCollection
           file:  $DMS_OSX_MODULE/artifacts/contracts/EmailLinkCollection.sol/EmailLinkCollection.json
@@ -30,8 +29,6 @@ dataSources:
           handler: handleAddedRequestItem
         - event: RejectedRequestItem(bytes32,bytes32,address)
           handler: handleRejectedRequestItem
-        - event: UpdatedLinkItem(bytes32,address,address)
-          handler: handleUpdatedLinkItem
       file: ./src/email-link-collection.ts
 
   - kind: ethereum
@@ -49,7 +46,6 @@ dataSources:
         - AcceptedRequestItem
         - AddedRequestItem
         - RejectedRequestItem
-        - UpdatedLinkItem
       abis:
         - name: PhoneLinkCollection
           file:  $DMS_OSX_MODULE/artifacts/contracts/PhoneLinkCollection.sol/PhoneLinkCollection.json
@@ -60,6 +56,4 @@ dataSources:
           handler: handleAddedRequestItem
         - event: RejectedRequestItem(bytes32,bytes32,address)
           handler: handleRejectedRequestItem
-        - event: UpdatedLinkItem(bytes32,address,address)
-          handler: handleUpdatedLinkItem
       file: ./src/phone-link-collection.ts

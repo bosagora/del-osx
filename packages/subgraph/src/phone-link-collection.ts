@@ -2,7 +2,6 @@ import {
   AcceptedRequestItem as AcceptedRequestItemEvent,
   AddedRequestItem as AddedRequestItemEvent,
   RejectedRequestItem as RejectedRequestItemEvent,
-  UpdatedLinkItem as UpdatedLinkItemEvent,
 } from "../generated/PhoneLinkCollection/PhoneLinkCollection";
 import { PhoneLinkItems, PhoneRequestItems } from "../generated/schema";
 
@@ -63,16 +62,4 @@ export function handleRejectedRequestItem(
   entity.transactionHash = event.transaction.hash;
 
   entity.save();
-}
-
-export function handleUpdatedLinkItem(event: UpdatedLinkItemEvent): void {
-  let linkEntity = PhoneLinkItems.load(event.params.phone);
-  if (linkEntity === null) {
-    linkEntity = new PhoneLinkItems(event.params.phone);
-  }
-  linkEntity.wallet = event.params.wallet2;
-  linkEntity.blockNumber = event.block.number;
-  linkEntity.blockTimestamp = event.block.timestamp;
-  linkEntity.transactionHash = event.transaction.hash;
-  linkEntity.save();
 }
