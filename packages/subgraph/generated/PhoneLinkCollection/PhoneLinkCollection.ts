@@ -88,32 +88,6 @@ export class RejectedRequestItem__Params {
   }
 }
 
-export class UpdatedLinkItem extends ethereum.Event {
-  get params(): UpdatedLinkItem__Params {
-    return new UpdatedLinkItem__Params(this);
-  }
-}
-
-export class UpdatedLinkItem__Params {
-  _event: UpdatedLinkItem;
-
-  constructor(event: UpdatedLinkItem) {
-    this._event = event;
-  }
-
-  get phone(): Bytes {
-    return this._event.parameters[0].value.toBytes();
-  }
-
-  get wallet1(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get wallet2(): Address {
-    return this._event.parameters[2].value.toAddress();
-  }
-}
-
 export class PhoneLinkCollection__getRequestItemResult {
   value0: BigInt;
   value1: i32;
@@ -537,52 +511,6 @@ export class CountVoteCall__Outputs {
   _call: CountVoteCall;
 
   constructor(call: CountVoteCall) {
-    this._call = call;
-  }
-}
-
-export class UpdateCall extends ethereum.Call {
-  get inputs(): UpdateCall__Inputs {
-    return new UpdateCall__Inputs(this);
-  }
-
-  get outputs(): UpdateCall__Outputs {
-    return new UpdateCall__Outputs(this);
-  }
-}
-
-export class UpdateCall__Inputs {
-  _call: UpdateCall;
-
-  constructor(call: UpdateCall) {
-    this._call = call;
-  }
-
-  get _phone(): Bytes {
-    return this._call.inputValues[0].value.toBytes();
-  }
-
-  get _wallet1(): Address {
-    return this._call.inputValues[1].value.toAddress();
-  }
-
-  get _signature1(): Bytes {
-    return this._call.inputValues[2].value.toBytes();
-  }
-
-  get _wallet2(): Address {
-    return this._call.inputValues[3].value.toAddress();
-  }
-
-  get _signature2(): Bytes {
-    return this._call.inputValues[4].value.toBytes();
-  }
-}
-
-export class UpdateCall__Outputs {
-  _call: UpdateCall;
-
-  constructor(call: UpdateCall) {
     this._call = call;
   }
 }

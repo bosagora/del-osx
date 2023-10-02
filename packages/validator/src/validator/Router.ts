@@ -303,8 +303,8 @@ export class Router {
             const address: string = String(req.body.address).trim(); // 주소
             const signature: string = String(req.body.signature).trim(); // 서명
             const nonce = await (await this.getContract()).nonceOf(address);
-            const emailHash = ContractUtils.sha256String(email);
-            if (!ContractUtils.verifyRequestData(address, email, nonce, signature)) {
+            const emailHash = ContractUtils.getEmailHash(email);
+            if (!ContractUtils.verifyRequestEmail(address, email, nonce, signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
                         message: "The signature value entered is not valid.",
@@ -729,7 +729,7 @@ export class Router {
                         method: "Router.onWork()",
                         message: `ProcessStep.REGISTER ${validation.requestId}`,
                     });
-                    const emailHash = ContractUtils.sha256String(validation.requestEmail);
+                    const emailHash = ContractUtils.getEmailHash(validation.requestEmail);
                     await this.addRequest(
                         validation.requestId,
                         emailHash,

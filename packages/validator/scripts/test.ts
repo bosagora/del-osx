@@ -18,6 +18,7 @@ import assert from "assert";
 import { expect } from "chai";
 import ip from "ip";
 import path from "path";
+import { Storage } from "../src/storage/Storages";
 
 async function main() {
     const provider = ethers.provider;
@@ -36,7 +37,7 @@ async function main() {
     const validators = [validator1, validator2, validator3];
     const users = [validator1Wallet, validator2Wallet, validator3Wallet];
     const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
-    const emailHashes: string[] = emails.map((m) => ContractUtils.sha256String(m));
+    const emailHashes: string[] = emails.map((m) => ContractUtils.getEmailHash(m));
 
     const validatorNodes: TestValidatorNode[] = [];
     const validatorNodeURLs: string[] = [];
@@ -69,7 +70,7 @@ async function main() {
     console.log("Create Validator Nodes");
     for (let idx = 0; idx < maxValidatorCount; idx++) {
         validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
-        validatorNodes.push(new TestValidatorNode(configs[idx]));
+        validatorNodes.push(new TestValidatorNode(configs[idx], await Storage.make(configs[idx].database.path)));
     }
 
     console.log("Start Validator Nodes");
@@ -106,7 +107,7 @@ async function main() {
     console.log("Add link data");
     let requestId = "";
     const nonce = await linkCollectionContract.nonceOf(users[0].address);
-    const signature = await ContractUtils.signRequestData(users[0], emails[0], nonce);
+    const signature = await ContractUtils.signRequestEmail(users[0], emails[0], nonce);
 
     const url4 = URI(validatorNodeURLs[0]).filename("request").toString();
     const response4 = await client.post(url4, {
@@ -137,8 +138,6 @@ async function main() {
     {
         const item = await linkCollectionContract.getRequestItem(requestId);
         console.log(item.agreement);
-        console.log(item.opposition);
-        console.log(item.abstaining);
         expect(await linkCollectionContract.toAddress(emailHashes[0])).to.equal(users[0].address);
         expect(await linkCollectionContract.toEmail(users[0].address)).to.equal(emailHashes[0]);
     }

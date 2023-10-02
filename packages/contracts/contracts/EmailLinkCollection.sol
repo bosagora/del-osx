@@ -56,8 +56,6 @@ contract EmailLinkCollection {
     event AcceptedRequestItem(bytes32 id, bytes32 email, address wallet);
     /// @notice 등록요청이 거부된 후 발생되는 이벤트
     event RejectedRequestItem(bytes32 id, bytes32 email, address wallet);
-    /// @notice 항목이 업데이트 후 발생되는 이벤트
-    event UpdatedLinkItem(bytes32 email, address wallet1, address wallet2);
 
     /// @notice 생성자
     /// @param _validators 검증자들
@@ -82,42 +80,6 @@ contract EmailLinkCollection {
         _;
     }
 
-    /// @notice 이메일-지갑주소 항목을 업데이트 한다
-    /// @param _email 이메일의 해시
-    /// @param _wallet1 현재 지갑주소
-    /// @param _signature1 현재 지갑주소의 서명
-    /// @param _wallet2 새로운 지갑주소
-    /// @param _signature2 새로운 지갑주소의 서명
-    function update(
-        bytes32 _email,
-        address _wallet1,
-        bytes calldata _signature1,
-        address _wallet2,
-        bytes calldata _signature2
-    ) public {
-        require(_email != NULL, "Invalid email hash");
-        bytes32 dataHash1 = keccak256(abi.encode(_email, _wallet1, nonce[_wallet1]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash1), _signature1) == _wallet1, "Invalid signature");
-
-        bytes32 dataHash2 = keccak256(abi.encode(_email, _wallet2, nonce[_wallet2]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash2), _signature2) == _wallet2, "Invalid signature");
-
-        require(emailToAddress[_email] == _wallet1, "Invalid email hash");
-        require(addressToEmail[_wallet1] == _email, "Invalid address");
-        require(addressToEmail[_wallet2] == bytes32(0x00), "Invalid address");
-        require(_wallet1 != _wallet2, "Invalid address");
-
-        delete addressToEmail[_wallet1];
-
-        emailToAddress[_email] = _wallet2;
-        addressToEmail[_wallet2] = _email;
-
-        nonce[_wallet1]++;
-        nonce[_wallet2]++;
-
-        emit UpdatedLinkItem(_email, _wallet1, _wallet2);
-    }
-
     /// @notice 이용할 수 있는 아이디 인지 알려준다.
     /// @param _id 요청 아이디
     function isAvailable(bytes32 _id) public view returns (bool) {
@@ -136,7 +98,6 @@ contract EmailLinkCollection {
         bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
-        require(emailToAddress[_email] == address(0x00), "Invalid email hash");
         require(addressToEmail[_wallet] == bytes32(0x00), "Invalid address");
 
         nonce[_wallet]++;
@@ -184,7 +145,11 @@ contract EmailLinkCollection {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
-                if (emailToAddress[req.email] == address(0x00) && addressToEmail[req.wallet] == bytes32(0x00)) {
+                if (addressToEmail[req.wallet] == bytes32(0x00)) {
+                    address oldWallet = emailToAddress[req.email];
+                    if (oldWallet != address(0x00)) {
+                        delete addressToEmail[oldWallet];
+                    }
                     emailToAddress[req.email] = req.wallet;
                     addressToEmail[req.wallet] = req.email;
                     req.status = RequestStatus.ACCEPTED;

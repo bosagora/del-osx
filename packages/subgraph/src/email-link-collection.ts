@@ -2,7 +2,6 @@ import {
   AcceptedRequestItem as AcceptedRequestItemEvent,
   AddedRequestItem as AddedRequestItemEvent,
   RejectedRequestItem as RejectedRequestItemEvent,
-  UpdatedLinkItem as UpdatedLinkItemEvent,
 } from "../generated/EmailLinkCollection/EmailLinkCollection";
 import { EmailLinkItems, EmailRequestItems } from "../generated/schema";
 
@@ -46,7 +45,6 @@ export function handleAcceptedRequestItem(
   linkEntity.transactionHash = event.transaction.hash;
   linkEntity.save();
 }
-
 export function handleRejectedRequestItem(
   event: RejectedRequestItemEvent
 ): void {
@@ -63,16 +61,4 @@ export function handleRejectedRequestItem(
   entity.transactionHash = event.transaction.hash;
 
   entity.save();
-}
-
-export function handleUpdatedLinkItem(event: UpdatedLinkItemEvent): void {
-  let linkEntity = EmailLinkItems.load(event.params.email);
-  if (linkEntity === null) {
-    linkEntity = new EmailLinkItems(event.params.email);
-  }
-  linkEntity.wallet = event.params.wallet2;
-  linkEntity.blockNumber = event.block.number;
-  linkEntity.blockTimestamp = event.block.timestamp;
-  linkEntity.transactionHash = event.transaction.hash;
-  linkEntity.save();
 }
