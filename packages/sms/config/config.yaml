@@ -1,0 +1,12 @@
+server:
+  address: ${HOST_IP}
+  port: ${HOST_PORT}
+
+logging:
+  level: ${LOGGING_LEVEL}
+
+sms:
+  endpoint: ${SMS_ENDPOINT}
+  apikey: ${SMS_APIKEY}
+  userid: ${SMS_USERID}
+  accessKey: ${SMS_ACCESSKEY}
