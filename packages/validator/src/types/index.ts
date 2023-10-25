@@ -26,7 +26,7 @@ export interface ITransaction {
      * 요청데이터
      */
     request: {
-        email: string;
+        phone: string;
         address: string;
         nonce: string;
         signature: string;
@@ -49,7 +49,7 @@ export interface ITransaction {
 }
 
 /**
- * 사용자가 검증자에게 제출한 이메일 인증코드를 다른 검증자들에게 전파할 때 사용하는 데이터구조
+ * 사용자가 검증자에게 제출한 전화번호 인증코드를 다른 검증자들에게 전파할 때 사용하는 데이터구조
  */
 export interface ISubmitData {
     requestId: string;
@@ -59,9 +59,9 @@ export interface ISubmitData {
 }
 
 /**
- * 이메일 인증에 대한 상태정보
+ * 전화번호 인증에 대한 상태정보
  */
-export enum EmailValidationStatus {
+export enum PhoneValidationStatus {
     NONE,
     SENT,
     VOTED,
@@ -73,28 +73,28 @@ export enum ProcessStep {
     NONE,
     RECEIVED_REGISTER, // => REGISTER
     RECEIVED_BROADCAST, // => SEND CODE
-    SENT_EMAIL, // => WAITING
+    SENT_SMS, // => WAITING
     RECEIVED_CODE, // => VOTE
     VOTED, // => COUNT
     FINISHED,
 }
 
 export enum AuthenticationMode {
-    NoEMailNoCode,
-    NoEMailKnownCode,
-    YesEMailKnownCode,
-    YesEMailUnknownCode,
+    NoSMSNoCode,
+    NoSMSKnownCode,
+    YesSMSKnownCode,
+    YesSMSUnknownCode,
 }
 
 export interface IValidationData {
     requestId: string;
-    requestEmail: string;
+    requestPhone: string;
     requestAddress: string;
     requestNonce: string;
     requestSignature: string;
     receiver: string;
     signature: string;
-    validationStatus: EmailValidationStatus;
+    validationStatus: PhoneValidationStatus;
     sendCode: string;
     receiveCode: string;
     expire: number;
@@ -104,13 +104,13 @@ export interface IValidationData {
 export function toValidationData(tx: ITransaction): IValidationData {
     return {
         requestId: tx.requestId,
-        requestEmail: tx.request.email,
+        requestPhone: tx.request.phone,
         requestAddress: tx.request.address,
         requestNonce: tx.request.nonce,
         requestSignature: tx.request.signature,
         receiver: tx.receiver,
         signature: tx.signature,
-        validationStatus: EmailValidationStatus.NONE,
+        validationStatus: PhoneValidationStatus.NONE,
         sendCode: "",
         receiveCode: "",
         expire: 0,
@@ -122,7 +122,7 @@ export function toTransaction(data: IValidationData): ITransaction {
     return {
         requestId: data.requestId,
         request: {
-            email: data.requestEmail,
+            phone: data.requestPhone,
             address: data.requestAddress,
             nonce: data.requestNonce,
             signature: data.requestSignature,

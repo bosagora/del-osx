@@ -39,15 +39,10 @@ export class ContractUtils {
         return hre.ethers.utils.keccak256(encodedResult);
     }
 
-    public static getEmailHash(phone: string): string {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(["string", "string"], ["BOSagora Email", phone]);
-        return hre.ethers.utils.keccak256(encodedResult);
-    }
-
-    public static getRequestId(emailHash: string, address: string, nonce: BigNumberish): string {
+    public static getRequestId(phoneHash: string, address: string, nonce: BigNumberish): string {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "address", "uint256", "bytes32"],
-            [emailHash, address, nonce, crypto.randomBytes(32)]
+            [phoneHash, address, nonce, crypto.randomBytes(32)]
         );
         return hre.ethers.utils.keccak256(encodedResult);
     }
@@ -100,34 +95,11 @@ export class ContractUtils {
         return res.toLowerCase() === address.toLowerCase();
     }
 
-    public static getRequestEmailHash(email: string, address: string, nonce: BigNumberish): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "address", "uint256"],
-            [ContractUtils.getEmailHash(email), address, nonce]
-        );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
-    }
-
-    public static async signRequestEmail(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
-        const message = ContractUtils.getRequestEmailHash(email, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
-    }
-
-    public static verifyRequestEmail(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
-        const message = ContractUtils.getRequestEmailHash(email, address, nonce);
-        let res: string;
-        try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
-        } catch (error) {
-            return false;
-        }
-        return res.toLowerCase() === address.toLowerCase();
-    }
     public static getTxHash(tx: ITransaction): Uint8Array {
         const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "address", "uint256", "bytes32", "address"],
             [
-                ContractUtils.getEmailHash(tx.request.email),
+                ContractUtils.getPhoneHash(tx.request.phone),
                 tx.request.address,
                 tx.request.nonce,
                 tx.requestId,

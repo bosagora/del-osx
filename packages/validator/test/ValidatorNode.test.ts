@@ -2,7 +2,7 @@ import { Config } from "../src/common/Config";
 import { Storage } from "../src/storage/Storages";
 import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { EmailLinkCollection } from "../typechain-types";
+import { PhoneLinkCollection } from "../typechain-types";
 import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
 
 import chai, { expect } from "chai";
@@ -23,15 +23,15 @@ describe("Test of ValidatorNode", function () {
 
     const validators = [validator1];
     const users = [user1, user2, user3];
-    const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
-    const emailHashes: string[] = emails.map((m) => ContractUtils.getEmailHash(m));
-    let linkCollectionContract: EmailLinkCollection;
+    const phones: string[] = ["01012341000", "01012341001", "01012341002"];
+    const phoneHashes: string[] = phones.map((m) => ContractUtils.getPhoneHash(m));
+    let linkCollectionContract: PhoneLinkCollection;
 
-    const deployEmailLinkCollection = async () => {
-        const linkCollectionFactory = await hre.ethers.getContractFactory("EmailLinkCollection");
+    const deployPhoneLinkCollection = async () => {
+        const linkCollectionFactory = await hre.ethers.getContractFactory("PhoneLinkCollection");
         linkCollectionContract = (await linkCollectionFactory
             .connect(deployer)
-            .deploy(validators.map((m) => m.address))) as EmailLinkCollection;
+            .deploy(validators.map((m) => m.address))) as PhoneLinkCollection;
         await linkCollectionContract.deployed();
         await linkCollectionContract.deployTransaction.wait();
     };
@@ -44,15 +44,15 @@ describe("Test of ValidatorNode", function () {
 
     context("Test ValidatorNode", () => {
         before("Deploy", async () => {
-            await deployEmailLinkCollection();
+            await deployPhoneLinkCollection();
         });
 
         before("Create Config", async () => {
             config = new Config();
             config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-            config.contracts.emailLinkCollectionAddress = linkCollectionContract.address;
+            config.contracts.phoneLinkCollectionAddress = linkCollectionContract.address;
             config.validator.validatorKey = validator1.privateKey;
-            config.validator.authenticationMode = AuthenticationMode.NoEMailKnownCode;
+            config.validator.authenticationMode = AuthenticationMode.NoSMSKnownCode;
         });
 
         before("Create Storage", async () => {
@@ -84,11 +84,11 @@ describe("Test of ValidatorNode", function () {
         let requestId = "";
         it("Add link data", async () => {
             const nonce = await linkCollectionContract.nonceOf(users[0].address);
-            const signature = await ContractUtils.signRequestEmail(users[0], emails[0], nonce);
+            const signature = await ContractUtils.signRequestPhone(users[0], phones[0], nonce);
 
             const url = URI(validatorNodeURL).filename("request").toString();
             const response = await client.post(url, {
-                email: emails[0],
+                phone: phones[0],
                 address: users[0].address,
                 signature,
             });
@@ -111,8 +111,8 @@ describe("Test of ValidatorNode", function () {
         });
 
         it("Check link data", async () => {
-            expect(await linkCollectionContract.toAddress(emailHashes[0])).to.equal(users[0].address);
-            expect(await linkCollectionContract.toEmail(users[0].address)).to.equal(emailHashes[0]);
+            expect(await linkCollectionContract.toAddress(phoneHashes[0])).to.equal(users[0].address);
+            expect(await linkCollectionContract.toPhone(users[0].address)).to.equal(phoneHashes[0]);
         });
     });
 });

@@ -2,7 +2,7 @@ import { Config } from "../src/common/Config";
 import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
 import { delay, TestClient, TestValidatorNode } from "../test/helper/Utility";
-import { EmailLinkCollection } from "../typechain-types";
+import { PhoneLinkCollection } from "../typechain-types";
 
 import { GasPriceManager } from "../src/contract/GasPriceManager";
 
@@ -36,8 +36,8 @@ async function main() {
     const validatorWallets = [validator1Wallet, validator2Wallet, validator3Wallet];
     const validators = [validator1, validator2, validator3];
     const users = [validator1Wallet, validator2Wallet, validator3Wallet];
-    const emails: string[] = ["a@example.com", "b@example.com", "c@example.com"];
-    const emailHashes: string[] = emails.map((m) => ContractUtils.getEmailHash(m));
+    const phones: string[] = ["a@example.com", "b@example.com", "c@example.com"];
+    const phoneHashes: string[] = phones.map((m) => ContractUtils.getPhoneHash(m));
 
     const validatorNodes: TestValidatorNode[] = [];
     const validatorNodeURLs: string[] = [];
@@ -46,19 +46,19 @@ async function main() {
     const client = new TestClient();
 
     console.log("Deploy");
-    const contractFactory = await ethers.getContractFactory("EmailLinkCollection");
+    const contractFactory = await ethers.getContractFactory("PhoneLinkCollection");
     const linkCollectionContract = (await contractFactory
         .connect(deployer)
-        .deploy(validatorWallets.map((m) => m.address))) as EmailLinkCollection;
+        .deploy(validatorWallets.map((m) => m.address))) as PhoneLinkCollection;
     await linkCollectionContract.deployTransaction.wait();
 
     console.log("Create Config");
     for (let idx = 0; idx < maxValidatorCount; idx++) {
         const config = new Config();
         config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-        config.contracts.emailLinkCollectionAddress = linkCollectionContract.address;
+        config.contracts.phoneLinkCollectionAddress = linkCollectionContract.address;
         config.validator.validatorKey = validatorWallets[idx].privateKey;
-        config.validator.authenticationMode = AuthenticationMode.NoEMailKnownCode;
+        config.validator.authenticationMode = AuthenticationMode.NoSMSKnownCode;
         config.node.protocol = "http";
         config.node.host = "0.0.0.0";
         config.node.port = 7070 + idx;
@@ -107,11 +107,11 @@ async function main() {
     console.log("Add link data");
     let requestId = "";
     const nonce = await linkCollectionContract.nonceOf(users[0].address);
-    const signature = await ContractUtils.signRequestEmail(users[0], emails[0], nonce);
+    const signature = await ContractUtils.signRequestPhone(users[0], phones[0], nonce);
 
     const url4 = URI(validatorNodeURLs[0]).filename("request").toString();
     const response4 = await client.post(url4, {
-        email: emails[0],
+        phone: phones[0],
         address: users[0].address,
         signature,
     });
@@ -138,8 +138,8 @@ async function main() {
     {
         const item = await linkCollectionContract.getRequestItem(requestId);
         console.log(item.agreement);
-        expect(await linkCollectionContract.toAddress(emailHashes[0])).to.equal(users[0].address);
-        expect(await linkCollectionContract.toEmail(users[0].address)).to.equal(emailHashes[0]);
+        expect(await linkCollectionContract.toAddress(phoneHashes[0])).to.equal(users[0].address);
+        expect(await linkCollectionContract.toPhone(users[0].address)).to.equal(phoneHashes[0]);
     }
 
     for (let idx = 0; idx < maxValidatorCount; idx++) {
