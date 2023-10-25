@@ -1,0 +1,12 @@
+server:
+  address: 0.0.0.0
+  port: 3300
+
+logging:
+  level: debug
+
+sms:
+  endpoint: ${SMS_ENDPOINT}
+  apikey: ${SMS_APIKEY}
+  userid: ${SMS_USERID}
+  accessKey: ${SMS_ACCESSKEY}
