@@ -1,5 +1,5 @@
 /**
- * 이메일 인증에 사용될 랜덤숫자를 생성하는 델리게이트의 인터패이스입니다.
+ * 전화번호 인증에 사용될 랜덤숫자를 생성하는 델리게이트의 인터패이스입니다.
  */
 export interface ICodeGenerator {
     setValue(value: number): void;
@@ -7,7 +7,7 @@ export interface ICodeGenerator {
 }
 
 /**
- * 이메일 인증에 사용될 랜덤숫자를 생성하는 클래스입니다.
+ * 전화번호 인증에 사용될 랜덤숫자를 생성하는 클래스입니다.
  */
 export class CodeGenerator implements ICodeGenerator {
     public setValue(value: number) {

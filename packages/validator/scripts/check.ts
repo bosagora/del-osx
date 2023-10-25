@@ -1,16 +1,16 @@
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { EmailLinkCollection } from "../typechain-types";
+import { PhoneLinkCollection } from "../typechain-types";
 
 import "@nomiclabs/hardhat-ethers";
 import * as hre from "hardhat";
 
 async function main() {
-    const userEmail = "worldia@naver.com";
+    const userPhone = process.env.SMS_RECEIVER || "";
     const userWallet = new hre.ethers.Wallet("0x21ebf5db0844666c762d8e3898d68b5a9714e9eecad89146ae53861b0ba389b3");
-    const userEmailHash = ContractUtils.getEmailHash(userEmail);
-    const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
-    const contract = (await factory.attach(process.env.LINK_COLLECTION_ADDRESS || "")) as EmailLinkCollection;
-    const resAddress = await contract.toAddress(userEmailHash);
+    const userPhoneHash = ContractUtils.getPhoneHash(userPhone);
+    const factory = await hre.ethers.getContractFactory("PhoneLinkCollection");
+    const contract = (await factory.attach(process.env.LINK_COLLECTION_ADDRESS || "")) as PhoneLinkCollection;
+    const resAddress = await contract.toAddress(userPhoneHash);
 
     if (resAddress === userWallet.address) {
         console.log("Success");
@@ -19,12 +19,12 @@ async function main() {
         console.log("Register address :", resAddress);
     }
 
-    const resEmail = await contract.toEmail(userWallet.address);
-    if (resEmail === userEmailHash) {
+    const resPhone = await contract.toPhone(userWallet.address);
+    if (resPhone === userPhoneHash) {
         console.log("Success");
     } else {
-        console.log("User email :", userEmailHash);
-        console.log("Register email :", resEmail);
+        console.log("User phone :", userPhoneHash);
+        console.log("Register phone :", resPhone);
     }
 }
 

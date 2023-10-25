@@ -11,14 +11,13 @@ logging:
   level: ${LOGGING_LEVEL}
 
 contracts:
-  emailLinkCollectionAddress : ${EMAIL_LINK_COLLECTION_ADDRESS}
+  phoneLinkCollectionAddress : ${PHONE_LINK_COLLECTION_ADDRESS}
 
 validator:
   validatorKey: ${VALIDATOR_KEY}
   authenticationMode: ${AUTHENTICATION_MODE}
 
-smtp:
-  host: ${SMTP_HOST}
-  port: ${SMTP_PORT}
-  account: ${SMTP_ACCOUNT}
-  password: ${SMTP_PASSWORD}
+sms:
+  endpoint: ${SMS_ENDPOINT}
+  accessKey: ${SMS_ACCESSKEY}
+  sender: ${SMS_SENDER}

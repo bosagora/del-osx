@@ -1,7 +1,7 @@
 import * as mkdirp from "mkdirp";
 import path from "path";
 import * as sqlite from "sqlite3";
-import { EmailValidationStatus, IValidationData, ProcessStep } from "../types";
+import { IValidationData, PhoneValidationStatus, ProcessStep } from "../types";
 
 export class Storage {
     protected _db: sqlite.Database | undefined;
@@ -108,7 +108,7 @@ export class Storage {
         const sql = `CREATE TABLE IF NOT EXISTS validation
         (
             requestId           TEXT    NOT NULL,
-            requestEmail        TEXT    NOT NULL,
+            requestPhone        TEXT    NOT NULL,
             requestAddress      TEXT    NOT NULL,
             requestNonce        TEXT    NOT NULL,
             requestSignature    TEXT    NOT NULL,
@@ -129,12 +129,12 @@ export class Storage {
     public async createValidation(data: IValidationData) {
         await this.run(
             `INSERT INTO validation
-            (requestId, requestEmail, requestAddress, requestNonce, requestSignature, receiver, signature, validationStatus, sendCode, receiveCode, expire, processStep)
+            (requestId, requestPhone, requestAddress, requestNonce, requestSignature, receiver, signature, validationStatus, sendCode, receiveCode, expire, processStep)
             VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 data.requestId,
-                data.requestEmail,
+                data.requestPhone,
                 data.requestAddress,
                 data.requestNonce,
                 data.requestSignature,
@@ -149,7 +149,7 @@ export class Storage {
         );
     }
 
-    public async updateValidationStatus(requestId: string, value: EmailValidationStatus) {
+    public async updateValidationStatus(requestId: string, value: PhoneValidationStatus) {
         await this.run(
             `UPDATE validation
             SET
@@ -197,18 +197,18 @@ export class Storage {
 
     public getUnfinishedJob(): Promise<IValidationData[]> {
         const sql = `SELECT
-            requestId, requestEmail, requestAddress, requestNonce, requestSignature, receiver, signature, validationStatus, sendCode, receiveCode, expire, processStep
+            requestId, requestPhone, requestAddress, requestNonce, requestSignature, receiver, signature, validationStatus, sendCode, receiveCode, expire, processStep
         FROM
             validation
         WHERE (processStep != ?) AND (processStep != ?) AND (processStep != ?)`;
         return new Promise<IValidationData[]>((resolve, reject) => {
-            this.query(sql, [ProcessStep.NONE, ProcessStep.SENT_EMAIL, ProcessStep.FINISHED])
+            this.query(sql, [ProcessStep.NONE, ProcessStep.SENT_SMS, ProcessStep.FINISHED])
                 .then((rows: any[]) => {
                     const data: IValidationData[] = [];
                     for (const row of rows) {
                         data.push({
                             requestId: row.requestId,
-                            requestEmail: row.requestEmail,
+                            requestPhone: row.requestPhone,
                             requestAddress: row.requestAddress,
                             requestNonce: row.requestNonce,
                             requestSignature: row.requestSignature,
@@ -231,7 +231,7 @@ export class Storage {
 
     public getValidation(requestId: string): Promise<IValidationData | undefined> {
         const sql = `SELECT
-                         requestId, requestEmail, requestAddress, requestNonce, requestSignature, receiver, signature, validationStatus, sendCode, receiveCode, expire, processStep
+                         requestId, requestPhone, requestAddress, requestNonce, requestSignature, receiver, signature, validationStatus, sendCode, receiveCode, expire, processStep
                      FROM
                          validation
                      WHERE requestId = ?`;
@@ -241,7 +241,7 @@ export class Storage {
                     if (rows.length > 0) {
                         resolve({
                             requestId: rows[0].requestId,
-                            requestEmail: rows[0].requestEmail,
+                            requestPhone: rows[0].requestPhone,
                             requestAddress: rows[0].requestAddress,
                             requestNonce: rows[0].requestNonce,
                             requestSignature: rows[0].requestSignature,

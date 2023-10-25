@@ -16,7 +16,7 @@ export class Config implements IConfig {
 
     public contracts: ContractsConfig;
 
-    public smtp: SMTPConfig;
+    public sms: SMSConfig;
 
     constructor() {
         this.node = new NodeConfig();
@@ -24,7 +24,7 @@ export class Config implements IConfig {
         this.logging = new LoggingConfig();
         this.validator = new ValidatorConfig();
         this.contracts = new ContractsConfig();
-        this.smtp = new SMTPConfig();
+        this.sms = new SMSConfig();
     }
 
     public static createWithArgument(): Config {
@@ -65,7 +65,7 @@ export class Config implements IConfig {
         this.logging.readFromObject(cfg.logging);
         this.validator.readFromObject(cfg.validator);
         this.contracts.readFromObject(cfg.contracts);
-        this.smtp.readFromObject(cfg.smtp);
+        this.sms.readFromObject(cfg.sms);
     }
 }
 
@@ -153,22 +153,22 @@ export class ValidatorConfig implements IValidatorConfig {
 }
 
 export class ContractsConfig implements IContractsConfig {
-    public emailLinkCollectionAddress: string;
+    public phoneLinkCollectionAddress: string;
 
     constructor() {
         const defaults = ContractsConfig.defaultValue();
-        this.emailLinkCollectionAddress = defaults.emailLinkCollectionAddress;
+        this.phoneLinkCollectionAddress = defaults.phoneLinkCollectionAddress;
     }
 
     public static defaultValue(): IContractsConfig {
         return {
-            emailLinkCollectionAddress: process.env.EMAIL_LINKER_CONTRACT_ADDRESS || "",
+            phoneLinkCollectionAddress: process.env.PHONE_LINKER_CONTRACT_ADDRESS || "",
         };
     }
 
     public readFromObject(config: IContractsConfig) {
-        if (config.emailLinkCollectionAddress !== undefined)
-            this.emailLinkCollectionAddress = config.emailLinkCollectionAddress;
+        if (config.phoneLinkCollectionAddress !== undefined)
+            this.phoneLinkCollectionAddress = config.phoneLinkCollectionAddress;
     }
 }
 
@@ -191,34 +191,30 @@ export class LoggingConfig implements ILoggingConfig {
     }
 }
 
-export class SMTPConfig implements ISMTPConfig {
-    public host: string;
-    public port: number;
-    public account: string;
-    public password: string;
+export class SMSConfig implements ISMSConfig {
+    public endpoint: string;
+    public accessKey: string;
+    public sender: string;
 
     constructor() {
-        const defaults = SMTPConfig.defaultValue();
-        this.host = defaults.host;
-        this.port = Number(defaults.port);
-        this.account = defaults.account;
-        this.password = defaults.password;
+        const defaults = SMSConfig.defaultValue();
+        this.endpoint = defaults.endpoint;
+        this.accessKey = defaults.accessKey;
+        this.sender = defaults.sender;
     }
 
-    public static defaultValue(): ISMTPConfig {
+    public static defaultValue(): ISMSConfig {
         return {
-            host: process.env.SMTP_HOST || "",
-            port: Number(process.env.SMTP_PORT || "465"),
-            account: process.env.SMTP_ACCOUNT || "",
-            password: process.env.SMTP_PASSWORD || "",
+            endpoint: process.env.SMS_ENDPOINT || "",
+            accessKey: process.env.SMS_ACCESSKEY || "",
+            sender: process.env.SMS_SENDER || "",
         };
     }
 
-    public readFromObject(config: ISMTPConfig) {
-        if (config.host !== undefined) this.host = config.host;
-        if (config.port !== undefined) this.port = Number(config.port);
-        if (config.account !== undefined) this.account = config.account;
-        if (config.password !== undefined) this.password = config.password;
+    public readFromObject(config: ISMSConfig) {
+        if (config.endpoint !== undefined) this.endpoint = config.endpoint;
+        if (config.accessKey !== undefined) this.accessKey = config.accessKey;
+        if (config.sender !== undefined) this.sender = config.sender;
     }
 }
 export interface INodeConfig {
@@ -243,14 +239,13 @@ export interface IValidatorConfig {
 }
 
 export interface IContractsConfig {
-    emailLinkCollectionAddress: string;
+    phoneLinkCollectionAddress: string;
 }
 
-export interface ISMTPConfig {
-    host: string;
-    port: number;
-    account: string;
-    password: string;
+export interface ISMSConfig {
+    endpoint: string;
+    accessKey: string;
+    sender: string;
 }
 
 export interface IConfig {
@@ -259,5 +254,5 @@ export interface IConfig {
     logging: ILoggingConfig;
     validator: IValidatorConfig;
     contracts: IContractsConfig;
-    smtp: ISMTPConfig;
+    sms: ISMSConfig;
 }

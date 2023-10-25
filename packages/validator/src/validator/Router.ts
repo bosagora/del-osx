@@ -1,16 +1,16 @@
-import { EmailLinkCollection } from "../../typechain-types";
+import { PhoneLinkCollection } from "../../typechain-types";
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
 import { ICodeGenerator } from "../delegator/CodeGenerator";
-import { IEmailSender } from "../delegator/EMailSender";
+import { ISMSSender } from "../delegator/SMSSender";
 import { Storage } from "../storage/Storages";
 import {
     AuthenticationMode,
-    EmailValidationStatus,
     ISubmitData,
     ITransaction,
     IValidationData,
+    PhoneValidationStatus,
     ProcessStep,
     toTransaction,
     toValidationData,
@@ -35,7 +35,7 @@ export class Router {
     private readonly _storage: Storage;
     private readonly _wallet: Wallet;
     private _peers: Peers;
-    private _contract: EmailLinkCollection | undefined;
+    private _contract: PhoneLinkCollection | undefined;
 
     private readonly nodeInfo: ValidatorNodeInfo;
 
@@ -48,7 +48,7 @@ export class Router {
     private _validatorIndex: number;
     private _validators: Map<string, string> = new Map<string, string>();
 
-    private readonly _emailSender: IEmailSender;
+    private readonly _phoneSender: ISMSSender;
     private readonly _codeGenerator: ICodeGenerator;
 
     constructor(
@@ -56,14 +56,14 @@ export class Router {
         config: Config,
         storage: Storage,
         peers: Peers,
-        emailSender: IEmailSender,
+        phoneSender: ISMSSender,
         codeGenerator: ICodeGenerator
     ) {
         this._validator = validator;
         this._config = config;
         this._storage = storage;
         this._peers = peers;
-        this._emailSender = emailSender;
+        this._phoneSender = phoneSender;
         this._codeGenerator = codeGenerator;
         this._wallet = new Wallet(this._config.validator.validatorKey);
         this._validatorIndex = -1;
@@ -83,10 +83,10 @@ export class Router {
         });
     }
 
-    private async getContract(): Promise<EmailLinkCollection> {
+    private async getContract(): Promise<PhoneLinkCollection> {
         if (this._contract === undefined) {
-            const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
-            this._contract = factory.attach(this._config.contracts.emailLinkCollectionAddress) as EmailLinkCollection;
+            const factory = await hre.ethers.getContractFactory("PhoneLinkCollection");
+            this._contract = factory.attach(this._config.contracts.phoneLinkCollectionAddress) as PhoneLinkCollection;
         }
         return this._contract;
     }
@@ -127,8 +127,8 @@ export class Router {
                 if (this._validatorIndex !== index) {
                     this._validatorIndex = index;
                     if (
-                        this._config.validator.authenticationMode === AuthenticationMode.NoEMailKnownCode ||
-                        this._config.validator.authenticationMode === AuthenticationMode.YesEMailKnownCode
+                        this._config.validator.authenticationMode === AuthenticationMode.NoSMSKnownCode ||
+                        this._config.validator.authenticationMode === AuthenticationMode.YesSMSKnownCode
                     ) {
                         this._codeGenerator.setValue(this._validatorIndex);
                     }
@@ -183,7 +183,7 @@ export class Router {
         this._validator.app.post(
             "/request",
             [
-                body("email").exists().trim().isEmail(),
+                body("phone").exists(),
                 body("address").exists().trim().isEthereumAddress(),
                 body("signature")
                     .exists()
@@ -196,7 +196,7 @@ export class Router {
             "/broadcast",
             [
                 body("request").exists(),
-                body("request.email").exists().trim().isEmail(),
+                body("request.phone").exists(),
                 body("request.address").exists().trim().isEthereumAddress(),
                 body("request.nonce")
                     .exists()
@@ -273,10 +273,10 @@ export class Router {
         return res.json(this.makeResponseData(200, data, undefined));
     }
 
-    private async getRequestId(emailHash: string, address: string, nonce: BigNumberish): Promise<string> {
+    private async getRequestId(phoneHash: string, address: string, nonce: BigNumberish): Promise<string> {
         // 내부에 랜덤으로 32 Bytes 를 생성하여 ID를 생성하므로 무한반복될 가능성이 극히 낮음
         while (true) {
-            const id = ContractUtils.getRequestId(emailHash, address, nonce);
+            const id = ContractUtils.getRequestId(phoneHash, address, nonce);
             if (await (await this.getContract()).isAvailable(id)) return id;
         }
     }
@@ -299,12 +299,12 @@ export class Router {
         }
 
         try {
-            const email: string = String(req.body.email).trim(); // 이메일 해시
+            const phone: string = String(req.body.phone).trim(); // 전화번호 해시
             const address: string = String(req.body.address).trim(); // 주소
             const signature: string = String(req.body.signature).trim(); // 서명
             const nonce = await (await this.getContract()).nonceOf(address);
-            const emailHash = ContractUtils.getEmailHash(email);
-            if (!ContractUtils.verifyRequestEmail(address, email, nonce, signature)) {
+            const phoneHash = ContractUtils.getPhoneHash(phone);
+            if (!ContractUtils.verifyRequestPhone(address, phone, nonce, signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
                         message: "The signature value entered is not valid.",
@@ -312,27 +312,27 @@ export class Router {
                 );
             }
 
-            const emailToAddress: string = await (await this.getContract()).toAddress(emailHash);
-            if (emailToAddress !== ContractUtils.NullAddress) {
+            const phoneToAddress: string = await (await this.getContract()).toAddress(phoneHash);
+            if (phoneToAddress !== ContractUtils.NullAddress) {
                 return res.json(
                     this.makeResponseData(402, undefined, {
-                        message: "This email is already registered.",
+                        message: "This phone is already registered.",
                     })
                 );
             }
 
-            const addressToEmail: string = await (await this.getContract()).toEmail(address);
-            if (addressToEmail !== ContractUtils.NullBytes32) {
+            const addressToPhone: string = await (await this.getContract()).toPhone(address);
+            if (addressToPhone !== ContractUtils.NullBytes32) {
                 return res.json(
                     this.makeResponseData(403, undefined, {
                         message: "This address is already registered.",
                     })
                 );
             }
-            const requestId = await this.getRequestId(emailHash, address, nonce);
+            const requestId = await this.getRequestId(phoneHash, address, nonce);
             const tx: ITransaction = {
                 request: {
-                    email,
+                    phone,
                     address,
                     nonce: nonce.toString(),
                     signature,
@@ -394,14 +394,14 @@ export class Router {
         }
 
         try {
-            const email = String(req.body.request.email).trim();
+            const phone = String(req.body.request.phone).trim();
             const address = String(req.body.request.address).trim();
             const nonce = String(req.body.request.nonce).trim();
             const signature = String(req.body.request.signature).trim();
 
             const tx: ITransaction = {
                 request: {
-                    email,
+                    phone,
                     address,
                     nonce,
                     signature,
@@ -564,17 +564,17 @@ export class Router {
         }
     }
 
-    private async processSendEmail(validation: IValidationData) {
-        if (validation.validationStatus === EmailValidationStatus.NONE) {
+    private async processSendPhone(validation: IValidationData) {
+        if (validation.validationStatus === PhoneValidationStatus.NONE) {
             const sendCode = this._codeGenerator.getCode();
-            await this._emailSender.send(
+            await this._phoneSender.send(
                 this._validatorIndex,
                 this._validators.size,
                 sendCode,
-                validation.requestEmail
+                validation.requestPhone
             );
             validation.sendCode = sendCode;
-            validation.validationStatus = EmailValidationStatus.SENT;
+            validation.validationStatus = PhoneValidationStatus.SENT;
             validation.expire = ContractUtils.getTimeStamp() + 5 * 60;
 
             await this._storage.updateSendCode(validation);
@@ -584,7 +584,7 @@ export class Router {
     private async processSubmit(requestId: string, receiveCode: string, res: express.Response) {
         const validation = await this._storage.getValidation(requestId);
         if (validation !== undefined) {
-            if (validation.validationStatus === EmailValidationStatus.SENT) {
+            if (validation.validationStatus === PhoneValidationStatus.SENT) {
                 if (validation.expire > ContractUtils.getTimeStamp()) {
                     validation.receiveCode = receiveCode.substring(
                         this._validatorIndex * 2,
@@ -605,7 +605,7 @@ export class Router {
                         );
                     }
                 } else {
-                    await this._storage.updateValidationStatus(validation.requestId, EmailValidationStatus.EXPIRED);
+                    await this._storage.updateValidationStatus(validation.requestId, PhoneValidationStatus.EXPIRED);
 
                     logger.warn({
                         validatorIndex: this._validatorIndex,
@@ -616,14 +616,14 @@ export class Router {
                         this.makeResponseData(430, null, { message: "The authentication code is expired." })
                     );
                 }
-            } else if (validation.validationStatus === EmailValidationStatus.NONE) {
+            } else if (validation.validationStatus === PhoneValidationStatus.NONE) {
                 logger.warn({
                     validatorIndex: this._validatorIndex,
                     method: "Router.processSubmit()",
-                    message: `The email has not been sent. ${requestId}`,
+                    message: `The phone has not been sent. ${requestId}`,
                 });
-                return res.json(this.makeResponseData(420, null, { message: "The email has not been sent." }));
-            } else if (validation.validationStatus === EmailValidationStatus.CONFIRMED) {
+                return res.json(this.makeResponseData(420, null, { message: "The phone has not been sent." }));
+            } else if (validation.validationStatus === PhoneValidationStatus.CONFIRMED) {
                 logger.warn({
                     validatorIndex: this._validatorIndex,
                     method: "Router.processSubmit()",
@@ -632,7 +632,7 @@ export class Router {
                 return res.json(
                     this.makeResponseData(421, null, { message: "Processing has already been completed." })
                 );
-            } else if (validation.validationStatus === EmailValidationStatus.EXPIRED) {
+            } else if (validation.validationStatus === PhoneValidationStatus.EXPIRED) {
                 logger.warn({
                     validatorIndex: this._validatorIndex,
                     method: "Router.processSubmit()",
@@ -663,11 +663,11 @@ export class Router {
         }
     }
 
-    private async addRequest(requestId: string, emailHash: string, address: string, signature: string) {
+    private async addRequest(requestId: string, phoneHash: string, address: string, signature: string) {
         try {
             await (await this.getContract())
                 .connect(this.getSigner())
-                .addRequest(requestId, emailHash, address, signature);
+                .addRequest(requestId, phoneHash, address, signature);
         } catch (e: any) {
             const message = e.message !== undefined ? e.message : "Error when saving a request to the contract.";
             logger.error({
@@ -729,19 +729,19 @@ export class Router {
                         method: "Router.onWork()",
                         message: `ProcessStep.REGISTER ${validation.requestId}`,
                     });
-                    const emailHash = ContractUtils.getEmailHash(validation.requestEmail);
+                    const phoneHash = ContractUtils.getPhoneHash(validation.requestPhone);
                     await this.addRequest(
                         validation.requestId,
-                        emailHash,
+                        phoneHash,
                         validation.requestAddress,
                         validation.requestSignature
                     );
                     await this._peers.broadcast(toTransaction(validation));
 
-                    await this.processSendEmail(validation);
-                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.SENT_EMAIL);
+                    await this.processSendPhone(validation);
+                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.SENT_SMS);
 
-                    if (this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode) {
+                    if (this._config.validator.authenticationMode === AuthenticationMode.NoSMSNoCode) {
                         setTimeout(async () => {
                             await this._storage.updateProcessStep(validation.requestId, ProcessStep.RECEIVED_CODE);
                         }, 3000);
@@ -755,17 +755,17 @@ export class Router {
                         message: `ProcessStep.BROADCAST ${validation.requestId}`,
                     });
 
-                    await this.processSendEmail(validation);
-                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.SENT_EMAIL);
+                    await this.processSendPhone(validation);
+                    await this._storage.updateProcessStep(validation.requestId, ProcessStep.SENT_SMS);
 
-                    if (this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode) {
+                    if (this._config.validator.authenticationMode === AuthenticationMode.NoSMSNoCode) {
                         setTimeout(async () => {
                             await this._storage.updateProcessStep(validation.requestId, ProcessStep.RECEIVED_CODE);
                         }, 3000);
                     }
                     break;
 
-                case ProcessStep.SENT_EMAIL:
+                case ProcessStep.SENT_SMS:
                     break;
 
                 case ProcessStep.RECEIVED_CODE:
@@ -789,7 +789,7 @@ export class Router {
                         await this.countVote(validation.requestId);
                         await this._storage.updateValidationStatus(
                             validation.requestId,
-                            EmailValidationStatus.CONFIRMED
+                            PhoneValidationStatus.CONFIRMED
                         );
                         await this._storage.updateProcessStep(validation.requestId, ProcessStep.FINISHED);
                     } else if (res === 2) {
@@ -806,7 +806,7 @@ export class Router {
                         });
                         await this._storage.updateValidationStatus(
                             validation.requestId,
-                            EmailValidationStatus.CONFIRMED
+                            PhoneValidationStatus.CONFIRMED
                         );
                         await this._storage.updateProcessStep(validation.requestId, ProcessStep.FINISHED);
                     }

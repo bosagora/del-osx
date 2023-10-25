@@ -1,7 +1,7 @@
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { CodeGenerator, FixedCodeGenerator, ICodeGenerator } from "../delegator/CodeGenerator";
-import { EMailNoSender, EMailSender, IEmailSender } from "../delegator/EMailSender";
+import { ISMSSender, SMSNoSender, SMSSender } from "../delegator/SMSSender";
 import { Storage } from "../storage/Storages";
 import { Peers } from "./Peers";
 import { Router } from "./Router";
@@ -25,7 +25,7 @@ export class ValidatorNode {
     private readonly _peers: Peers;
     private readonly _worker: Worker;
 
-    private readonly _emailSender: IEmailSender;
+    private readonly _phoneSender: ISMSSender;
     private readonly _codeGenerator: ICodeGenerator;
 
     constructor(config: Config, storage: Storage) {
@@ -35,20 +35,20 @@ export class ValidatorNode {
         this._peers = new Peers();
 
         if (
-            this._config.validator.authenticationMode === AuthenticationMode.NoEMailNoCode ||
-            this._config.validator.authenticationMode === AuthenticationMode.NoEMailKnownCode
+            this._config.validator.authenticationMode === AuthenticationMode.NoSMSNoCode ||
+            this._config.validator.authenticationMode === AuthenticationMode.NoSMSKnownCode
         ) {
-            this._emailSender = new EMailNoSender();
+            this._phoneSender = new SMSNoSender();
         } else {
             logger.info({
                 validatorIndex: "n",
                 method: "ValidatorNode.constructor()",
-                message: `AuthenticationMode.YesEMail`,
+                message: `AuthenticationMode.YesSMS`,
             });
-            this._emailSender = new EMailSender(this._config);
+            this._phoneSender = new SMSSender(this._config);
         }
 
-        if (this._config.validator.authenticationMode === AuthenticationMode.YesEMailUnknownCode) {
+        if (this._config.validator.authenticationMode === AuthenticationMode.YesSMSUnknownCode) {
             logger.info({
                 validatorIndex: "n",
                 method: "ValidatorNode.constructor()",
@@ -64,7 +64,7 @@ export class ValidatorNode {
             this._config,
             this._storage,
             this._peers,
-            this._emailSender,
+            this._phoneSender,
             this._codeGenerator
         );
         this._worker = new Worker("*/1 * * * * *", this, this._router);
