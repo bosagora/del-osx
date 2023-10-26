@@ -58,17 +58,6 @@ describe("Test for PhoneLinkCollection", () => {
         assert.deepStrictEqual(await contract.toPhone(user1.address), hash);
     });
 
-    it("Add an item with the same address", async () => {
-        const nonce = await contract.nonceOf(user1.address);
-        const phone = "08201012345678";
-        const hash = ContractUtils.getPhoneHash(phone);
-        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
-        requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
-        await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
-            "Invalid address"
-        );
-    });
-
     it("Update an item", async () => {
         const phone = "08201012341234";
         const hash = ContractUtils.getPhoneHash(phone);

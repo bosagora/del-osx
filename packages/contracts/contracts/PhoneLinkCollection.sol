@@ -98,8 +98,6 @@ contract PhoneLinkCollection {
         bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
-        require(addressToPhone[_wallet] == bytes32(0x00), "Invalid address");
-
         nonce[_wallet]++;
 
         requests[_id].id = _id;
@@ -145,18 +143,27 @@ contract PhoneLinkCollection {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
-                if (addressToPhone[req.wallet] == bytes32(0x00)) {
+                if ((addressToPhone[req.wallet] == req.phone) && (phoneToAddress[req.phone] == req.wallet)) {
+                    req.status = RequestStatus.ACCEPTED;
+                    emit AcceptedRequestItem(req.id, req.phone, req.wallet);
+                } else {
+                    // 기존 링크를 삭제한다. 새로운 지갑주소와 링크되어 있었던 이전의 전화번호의 링크를 삭제한다.
+                    bytes32 oldPhone = addressToPhone[req.wallet];
+                    if (oldPhone != bytes32(0x00)) {
+                        delete phoneToAddress[oldPhone];
+                    }
+
+                    // 기존 링크를 삭제한다. 새로운 전화번호와 링크되어 있었던 이전의 지갑주소의 링크를 삭제한다.
                     address oldWallet = phoneToAddress[req.phone];
                     if (oldWallet != address(0x00)) {
                         delete addressToPhone[oldWallet];
                     }
+
                     phoneToAddress[req.phone] = req.wallet;
                     addressToPhone[req.wallet] = req.phone;
+
                     req.status = RequestStatus.ACCEPTED;
                     emit AcceptedRequestItem(req.id, req.phone, req.wallet);
-                } else {
-                    req.status = RequestStatus.REJECTED;
-                    emit RejectedRequestItem(req.id, req.phone, req.wallet);
                 }
             }
         }
