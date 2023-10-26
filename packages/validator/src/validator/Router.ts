@@ -312,23 +312,6 @@ export class Router {
                 );
             }
 
-            const phoneToAddress: string = await (await this.getContract()).toAddress(phoneHash);
-            if (phoneToAddress !== ContractUtils.NullAddress) {
-                return res.json(
-                    this.makeResponseData(402, undefined, {
-                        message: "This phone is already registered.",
-                    })
-                );
-            }
-
-            const addressToPhone: string = await (await this.getContract()).toPhone(address);
-            if (addressToPhone !== ContractUtils.NullBytes32) {
-                return res.json(
-                    this.makeResponseData(403, undefined, {
-                        message: "This address is already registered.",
-                    })
-                );
-            }
             const requestId = await this.getRequestId(phoneHash, address, nonce);
             const tx: ITransaction = {
                 request: {

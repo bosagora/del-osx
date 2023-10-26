@@ -58,17 +58,6 @@ describe("Test for EmailLinkCollection", () => {
         assert.deepStrictEqual(await contract.toEmail(user1.address), hash);
     });
 
-    it("Add an item with the same address", async () => {
-        const nonce = await contract.nonceOf(user1.address);
-        const email = "def@example.com";
-        const hash = ContractUtils.getEmailHash(email);
-        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
-        requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
-        await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature)).to.be.revertedWith(
-            "Invalid address"
-        );
-    });
-
     it("Update an item", async () => {
         const email = "abc@example.com";
         const hash = ContractUtils.getEmailHash(email);
