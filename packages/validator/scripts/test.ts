@@ -1,154 +1,110 @@
-import { Config } from "../src/common/Config";
-import { AuthenticationMode, ValidatorNodeInfo } from "../src/types";
 import { ContractUtils } from "../src/utils/ContractUtils";
-import { delay, TestClient, TestValidatorNode } from "../test/helper/Utility";
+import { Utils } from "../src/utils/Utils";
 import { PhoneLinkCollection } from "../typechain-types";
 
-import { GasPriceManager } from "../src/contract/GasPriceManager";
-
-import { NonceManager } from "@ethersproject/experimental";
 import "@nomiclabs/hardhat-ethers";
+import * as hre from "hardhat";
 
-import { Wallet } from "ethers";
-import { ethers } from "hardhat";
-
+import axios from "axios";
 import URI from "urijs";
 
-import assert from "assert";
-import { expect } from "chai";
-import ip from "ip";
-import path from "path";
-import { Storage } from "../src/storage/Storages";
+const validatorNodeURL = "http://localhost:7080";
 
-async function main() {
-    const provider = ethers.provider;
-    const deployerWallet = new Wallet(process.env.DEPLOYER || "");
-    const validator1Wallet = new Wallet(process.env.VALIDATOR1 || "");
-    const validator2Wallet = new Wallet(process.env.VALIDATOR2 || "");
-    const validator3Wallet = new Wallet(process.env.VALIDATOR3 || "");
+interface IUserData {
+    phone: string;
+    address: string;
+    privateKey: string;
+}
 
-    console.log("deployerWallet", deployerWallet.address);
-    const deployer = provider.getSigner(deployerWallet.address);
-    const validator1 = new NonceManager(new GasPriceManager(provider.getSigner(validator1Wallet.address)));
-    const validator2 = new NonceManager(new GasPriceManager(provider.getSigner(validator2Wallet.address)));
-    const validator3 = new NonceManager(new GasPriceManager(provider.getSigner(validator3Wallet.address)));
+const userData: IUserData[] = [
+    {
+        phone: "01010009000",
+        address: "0xa4Eb53ed77203894b68bFB27B50B0676A8Dec185",
+        privateKey: "0xc514a04e72dd7b3967197f985b55978393fb12593b59d7c08eb2f396826f3cf2",
+    },
+    {
+        phone: "01010009001",
+        address: "0x0229Dd332125fF89914Da64Be60ea99259A86B19",
+        privateKey: "0x530bc7a4fde2b161bd85ccd14323121acbbfc7ec877fb007a69c1adae56afbf1",
+    },
+    {
+        phone: "01010009002",
+        address: "0x28d150a939e7348597BF35cA3588261456c6Ab74",
+        privateKey: "0xb6585fdce92cedce47cd7c9b13c8159cd5536549c58730dd8c4da602f3daa16c",
+    },
+    {
+        phone: "01010009003",
+        address: "0xF01BA1A09487e4F2C8dbD2122A8C1cbdA36aF631",
+        privateKey: "0x4a2656ed4b84ea34f25a83f005198b71510016d0606ba5c7a101b950057a5359",
+    },
+    {
+        phone: "01010009004",
+        address: "0xafFe745418Ad24c272175e5B58610A8a35e2EcDa",
+        privateKey: "0xa237d68cbb66fd5f76e7b321156c46882546ad87d662dec8b82703ac31efbf0a",
+    },
+];
+async function getContract(): Promise<PhoneLinkCollection> {
+    const factory = await hre.ethers.getContractFactory("PhoneLinkCollection");
+    return (await factory.attach(process.env.PHONE_LINK_COLLECTION_ADDRESS || "")) as PhoneLinkCollection;
+}
 
-    const validatorWallets = [validator1Wallet, validator2Wallet, validator3Wallet];
-    const validators = [validator1, validator2, validator3];
-    const users = [validator1Wallet, validator2Wallet, validator3Wallet];
-    const phones: string[] = ["a@example.com", "b@example.com", "c@example.com"];
-    const phoneHashes: string[] = phones.map((m) => ContractUtils.getPhoneHash(m));
+async function request(user: IUserData): Promise<string> {
+    const contract = await getContract();
+    const nonce = await contract.nonceOf(user.address);
+    const signature = await ContractUtils.signRequestPhone(new hre.ethers.Wallet(user.privateKey), user.phone, nonce);
 
-    const validatorNodes: TestValidatorNode[] = [];
-    const validatorNodeURLs: string[] = [];
-    const configs: Config[] = [];
-    const maxValidatorCount = 3;
-    const client = new TestClient();
-
-    console.log("Deploy");
-    const contractFactory = await ethers.getContractFactory("PhoneLinkCollection");
-    const linkCollectionContract = (await contractFactory
-        .connect(deployer)
-        .deploy(validatorWallets.map((m) => m.address))) as PhoneLinkCollection;
-    await linkCollectionContract.deployTransaction.wait();
-
-    console.log("Create Config");
-    for (let idx = 0; idx < maxValidatorCount; idx++) {
-        const config = new Config();
-        config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-        config.contracts.phoneLinkCollectionAddress = linkCollectionContract.address;
-        config.validator.validatorKey = validatorWallets[idx].privateKey;
-        config.validator.authenticationMode = AuthenticationMode.NoSMSKnownCode;
-        config.node.protocol = "http";
-        config.node.host = "0.0.0.0";
-        config.node.port = 7070 + idx;
-        configs.push(config);
-
-        await linkCollectionContract.connect(validators[idx]).updateEndpoint(`http://${ip.address()}:${7070 + idx}`);
-    }
-
-    console.log("Create Validator Nodes");
-    for (let idx = 0; idx < maxValidatorCount; idx++) {
-        validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
-        validatorNodes.push(new TestValidatorNode(configs[idx], await Storage.make(configs[idx].database.path)));
-    }
-
-    console.log("Start Validator Nodes");
-    for (let idx = 0; idx < maxValidatorCount; idx++) {
-        await validatorNodes[idx].start();
-    }
-
-    console.log("Wait");
-    await delay(5000);
-
-    console.log("Get Validator Node Info");
-    for (let idx = 0; idx < maxValidatorCount; idx++) {
-        const url1 = URI(validatorNodeURLs[idx]).filename("info").toString();
-        const response1 = await client.get(url1);
-        assert.deepStrictEqual(response1.data.code, 200);
-        const nodeInfo: ValidatorNodeInfo = response1.data.data;
-        assert.strictEqual(nodeInfo.nodeId, validatorWallets[idx].address.toLowerCase());
-        assert.strictEqual(nodeInfo.endpoint, `http://${ip.address()}:${configs[idx].node.port}`);
-    }
-
-    console.log("Wait");
-    await delay(5000);
-
-    console.log("Check validator's endpoint on contract");
-    for (let idx = 0; idx < maxValidatorCount; idx++) {
-        const res3 = await linkCollectionContract.getValidator(idx);
-        assert.deepStrictEqual(res3.index.toString(), `${idx}`);
-        assert.deepStrictEqual(res3.endpoint, `http://${ip.address()}:${7070 + idx}`);
-    }
-
-    console.log("Wait");
-    await delay(5000);
-
-    console.log("Add link data");
-    let requestId = "";
-    const nonce = await linkCollectionContract.nonceOf(users[0].address);
-    const signature = await ContractUtils.signRequestPhone(users[0], phones[0], nonce);
-
-    const url4 = URI(validatorNodeURLs[0]).filename("request").toString();
-    const response4 = await client.post(url4, {
-        phone: phones[0],
-        address: users[0].address,
+    const url = URI(validatorNodeURL).filename("request").toString();
+    const client = axios.create();
+    const response = await client.post(url, {
+        phone: user.phone,
+        address: user.address,
         signature,
     });
-    assert.deepStrictEqual(response4.status, 200);
-    assert.deepStrictEqual(response4.data.code, 200);
-    assert(response4.data.data.requestId !== undefined);
-    requestId = response4.data.data.requestId;
+    console.log(response.data);
 
-    console.log("Wait");
-    await delay(5000);
+    return response.data.data.requestId;
+}
 
-    console.log("Submit");
-    const url5 = URI(validatorNodeURLs[0]).filename("submit").toString();
-    const response5 = await client.post(url5, { requestId, code: "000102" });
-    assert.strictEqual(response5.data.data, "OK");
+async function submit(requestId: string) {
+    const code = "000102";
 
-    console.log("Wait");
-    await delay(5000);
+    const client = axios.create();
+    const url = URI(validatorNodeURL).filename("submit").toString();
+    const response = await client.post(url, { requestId, code });
+    console.log(response.data);
+}
 
-    console.log("Wait");
-    await delay(5000);
+async function check(user: IUserData) {
+    const userPhoneHash = ContractUtils.getPhoneHash(user.phone);
+    const contract = await getContract();
+    const resAddress = await contract.toAddress(userPhoneHash);
 
-    console.log("Check link data");
-    {
-        const item = await linkCollectionContract.getRequestItem(requestId);
-        console.log(item.agreement);
-        expect(await linkCollectionContract.toAddress(phoneHashes[0])).to.equal(users[0].address);
-        expect(await linkCollectionContract.toPhone(users[0].address)).to.equal(phoneHashes[0]);
+    if (resAddress === user.address) {
+        console.log("Success");
+    } else {
+        console.log("User address :", user.address);
+        console.log("Registered address :", resAddress);
     }
 
-    for (let idx = 0; idx < maxValidatorCount; idx++) {
-        await validatorNodes[idx].stop();
+    const resPhone = await contract.toPhone(user.address);
+    if (resPhone === userPhoneHash) {
+        console.log("Success");
+    } else {
+        console.log("User phone :", userPhoneHash);
+        console.log("Registered phone :", resPhone);
     }
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
+async function main() {
+    for (const user of userData) {
+        const requestId = await request(user);
+        await Utils.delay(5000);
+        await submit(requestId);
+        await Utils.delay(10000);
+        await check(user);
+    }
+}
+
 main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
