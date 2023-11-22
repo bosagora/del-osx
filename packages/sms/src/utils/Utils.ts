@@ -72,6 +72,34 @@ export class Utils {
         if (value.substring(0, 2).toLowerCase() === "0x") return value.substring(2);
         else return value;
     }
+
+    public static removeNationCode(phoneNumber: string): string {
+        phoneNumber = phoneNumber.replace(/\+/g, "");
+        phoneNumber = phoneNumber.replace(/\-/g, "");
+        phoneNumber = phoneNumber.replace(/ /g, "");
+        phoneNumber = phoneNumber.replace(/\(/g, "");
+        phoneNumber = phoneNumber.replace(/\)/g, "");
+        phoneNumber = phoneNumber.replace(/\[]/g, "");
+        phoneNumber = phoneNumber.replace(/\]/g, "");
+
+        if (phoneNumber.length > 11) {
+            if (phoneNumber.substring(0, 2) == "82") {
+                phoneNumber = phoneNumber.substring(2);
+            } else if (phoneNumber.substring(0, 3) == "082") {
+                phoneNumber = phoneNumber.substring(3);
+            }
+        }
+
+        if (phoneNumber.length > 10) {
+            phoneNumber = phoneNumber.substring(phoneNumber.length - 10);
+        }
+
+        if (phoneNumber.substring(1) !== "0") {
+            phoneNumber = "0" + phoneNumber;
+        }
+
+        return phoneNumber;
+    }
 }
 
 /**
