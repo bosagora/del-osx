@@ -5,6 +5,7 @@ import { WebService } from "../service/WebService";
 import { body, validationResult } from "express-validator";
 
 import express from "express";
+import { Utils } from "../utils/Utils";
 
 // tslint:disable-next-line:no-var-requires
 const aligoapi = require("aligoapi");
@@ -72,7 +73,7 @@ export class DefaultRouter {
 
             const msg: string = String(req.body.msg);
             const sender: string = String(req.body.sender);
-            const receiver: string = String(req.body.receiver);
+            const receiver: string = Utils.removeNationCode(String(req.body.receiver));
             const smsResponse = await this.sendSMS(msg, sender, receiver);
             logger.info(`POST /send : ${smsResponse.message}`);
             return res.status(200).json(this.makeResponseData(200, smsResponse, null));
