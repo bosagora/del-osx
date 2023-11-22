@@ -52,14 +52,14 @@ export class SMSSender implements ISMSSender {
             const client = axios.create();
             const contents: string[] = [];
             const validatorNumber: string = `${validatorIndex + 1}`;
-            contents.push(`검증자 번호 [${validatorNumber}]`);
-            contents.push(`인증번호 [${code}]`);
-            contents.push(`5분간 유효합니다`);
+            contents.push(`#${validatorNumber}`);
+            contents.push(`No [${code}]`);
+            contents.push(`Valid for 30 seconds`);
             const response = await client.post(this._config.sms.endpoint, {
                 accessKey: this._config.sms.accessKey,
                 sender: this._config.sms.sender,
                 receiver: phone,
-                msg: contents.map((m) => m + "\n").join("\n"),
+                msg: contents.join("\n"),
             });
             if (response.data.code === 200) {
                 if (response.data.data.code === "1") {

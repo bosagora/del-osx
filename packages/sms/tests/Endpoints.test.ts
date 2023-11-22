@@ -38,14 +38,14 @@ describe("Test of Server", () => {
 
     it("Send loyalty type", async () => {
         const contents: string[] = [];
-        contents.push(`검증자 번호 [1]`);
+        contents.push(`#1`);
         contents.push(`인증번호 [45]`);
         contents.push(`5분간 유효합니다`);
         const uri = URI(serverURL).filename("send");
         const url = uri.toString();
         const response = await client.post(url, {
             accessKey: config.sms.accessKey,
-            msg: contents.map((m) => m + "\n").join("\n"),
+            msg: contents.join("\n"),
             sender: process.env.SMS_SENDER,
             receiver: process.env.SMS_RECEIVER,
         });
