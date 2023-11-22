@@ -53,8 +53,7 @@ export class SMSSender implements ISMSSender {
             const contents: string[] = [];
             const validatorNumber: string = `${validatorIndex + 1}`;
             contents.push(`#${validatorNumber}`);
-            contents.push(`No [${code}]`);
-            contents.push(`Valid for 30 seconds`);
+            contents.push(`인증코드: ${code}`);
             const response = await client.post(this._config.sms.endpoint, {
                 accessKey: this._config.sms.accessKey,
                 sender: this._config.sms.sender,
