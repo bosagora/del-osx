@@ -8,10 +8,15 @@
  *       MIT License. See LICENSE for details.
  */
 
-import { BigNumberish, Signer } from "ethers";
-// tslint:disable-next-line:no-submodule-imports
-import { arrayify } from "ethers/lib/utils";
-import * as hre from "hardhat";
+import { defaultAbiCoder } from "@ethersproject/abi";
+
+import { BigNumberish } from "@ethersproject/bignumber";
+import { arrayify } from "@ethersproject/bytes";
+import { keccak256 } from "@ethersproject/keccak256";
+import { randomBytes } from "@ethersproject/random";
+import { verifyMessage } from "@ethersproject/wallet";
+
+import { Signer } from "ethers";
 
 export class ContractUtils {
     /**
@@ -36,44 +41,38 @@ export class ContractUtils {
     }
 
     public static getPhoneHash(phone: string): string {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["string", "string"],
-            ["BOSagora Phone Number", phone]
-        );
-        return hre.ethers.utils.keccak256(encodedResult);
+        const encodedResult = defaultAbiCoder.encode(["string", "string"], ["BOSagora Phone Number", phone]);
+        return keccak256(encodedResult);
     }
 
     public static getEmailHash(phone: string): string {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(["string", "string"], ["BOSagora Email", phone]);
-        return hre.ethers.utils.keccak256(encodedResult);
+        const encodedResult = defaultAbiCoder.encode(["string", "string"], ["BOSagora Email", phone]);
+        return keccak256(encodedResult);
     }
 
     public static getRequestId(hash: string, address: string, nonce: BigNumberish): string {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "address", "uint256", "bytes32"],
-            [hash, address, nonce, hre.ethers.utils.randomBytes(32)]
+            [hash, address, nonce, randomBytes(32)]
         );
-        return hre.ethers.utils.keccak256(encodedResult);
+        return keccak256(encodedResult);
     }
 
     public static getRequestHash(hash: string, address: string, nonce: BigNumberish): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "address", "uint256"],
-            [hash, address, nonce]
-        );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        const encodedResult = defaultAbiCoder.encode(["bytes32", "address", "uint256"], [hash, address, nonce]);
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signRequestHash(signer: Signer, hash: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestHash(hash, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
+        return await signer.signMessage(message);
     }
 
     public static verifyRequestHash(address: string, hash: string, nonce: BigNumberish, signature: string): boolean {
         const message = ContractUtils.getRequestHash(hash, address, nonce);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
@@ -81,23 +80,23 @@ export class ContractUtils {
     }
 
     public static getRequestPhoneHash(phone: string, address: string, nonce: BigNumberish): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "address", "uint256"],
             [ContractUtils.getPhoneHash(phone), address, nonce]
         );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signRequestPhone(signer: Signer, phone: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestPhoneHash(phone, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
+        return await signer.signMessage(message);
     }
 
     public static verifyRequestPhone(address: string, phone: string, nonce: BigNumberish, signature: string): boolean {
         const message = ContractUtils.getRequestPhoneHash(phone, address, nonce);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
@@ -105,23 +104,23 @@ export class ContractUtils {
     }
 
     public static getRequestEmailHash(email: string, address: string, nonce: BigNumberish): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "address", "uint256"],
             [ContractUtils.getEmailHash(email), address, nonce]
         );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signRequestEmail(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestEmailHash(email, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
+        return await signer.signMessage(message);
     }
 
     public static verifyRequestEmail(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
         const message = ContractUtils.getRequestEmailHash(email, address, nonce);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }

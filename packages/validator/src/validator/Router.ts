@@ -1,7 +1,7 @@
+import "@nomicfoundation/hardhat-ethers";
 import { PhoneLinkCollection } from "../../typechain-types";
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
-import { GasPriceManager } from "../contract/GasPriceManager";
 import { ICodeGenerator } from "../delegator/CodeGenerator";
 import { ISMSSender } from "../delegator/SMSSender";
 import { Storage } from "../storage/Storages";
@@ -20,10 +20,9 @@ import { ContractUtils } from "../utils/ContractUtils";
 import { Peer, Peers } from "./Peers";
 import { ValidatorNode } from "./ValidatorNode";
 
-import { NonceManager } from "@ethersproject/experimental";
-import "@nomiclabs/hardhat-ethers";
+import { ethers } from "hardhat";
+
 import { BigNumberish, Signer, Wallet } from "ethers";
-import * as hre from "hardhat";
 
 import express from "express";
 import { body, validationResult } from "express-validator";
@@ -65,7 +64,7 @@ export class Router {
         this._peers = peers;
         this._phoneSender = phoneSender;
         this._codeGenerator = codeGenerator;
-        this._wallet = new Wallet(this._config.validator.validatorKey);
+        this._wallet = new Wallet(this._config.validator.validatorKey, ethers.provider);
         this._validatorIndex = -1;
 
         const host = this._config.node.external !== "" ? this._config.node.external : ip.address();
@@ -85,14 +84,14 @@ export class Router {
 
     private async getContract(): Promise<PhoneLinkCollection> {
         if (this._contract === undefined) {
-            const factory = await hre.ethers.getContractFactory("PhoneLinkCollection");
+            const factory = await ethers.getContractFactory("PhoneLinkCollection");
             this._contract = factory.attach(this._config.contracts.phoneLinkCollectionAddress) as PhoneLinkCollection;
         }
         return this._contract;
     }
 
     private getSigner(): Signer {
-        return new NonceManager(new GasPriceManager(hre.ethers.provider.getSigner(this._wallet.address)));
+        return this._wallet;
     }
 
     private makeResponseData(code: number, data: any, error?: any): any {
@@ -121,7 +120,7 @@ export class Router {
         // 새로 추가된 검증자 맵에 추가
         for (const item of res) {
             const nodeId = item.validator.toLowerCase();
-            const index = item.index.toNumber();
+            const index = Number(item.index);
             const endpoint = item.endpoint;
             if (this._wallet.address.toLowerCase() === nodeId) {
                 if (this._validatorIndex !== index) {
@@ -763,7 +762,7 @@ export class Router {
 
                 case ProcessStep.VOTED:
                     const res = await (await this.getContract()).canCountVote(validation.requestId);
-                    if (res === 1) {
+                    if (res === 1n) {
                         logger.info({
                             validatorIndex: this._validatorIndex,
                             method: "Router.onWork()",
@@ -775,7 +774,7 @@ export class Router {
                             PhoneValidationStatus.CONFIRMED
                         );
                         await this._storage.updateProcessStep(validation.requestId, ProcessStep.FINISHED);
-                    } else if (res === 2) {
+                    } else if (res === 2n) {
                         logger.info({
                             validatorIndex: this._validatorIndex,
                             method: "Router.onWork()",

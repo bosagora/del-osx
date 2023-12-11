@@ -1,32 +1,28 @@
-import { ContractUtils } from "../src/utils/ContractUtils";
-import { PhoneLinkCollection } from "../typechain-types";
-
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-ethers";
+import "@openzeppelin/hardhat-upgrades";
+import { ethers, upgrades } from "hardhat";
 
 import assert from "assert";
 import chai, { expect } from "chai";
-import { solidity } from "ethereum-waffle";
 
-import * as hre from "hardhat";
+import { HardhatAccount } from "../src/HardhatAccount";
+import { ContractUtils } from "../src/utils/ContractUtils";
+import { PhoneLinkCollection } from "../typechain-types";
 
-import { BigNumber } from "ethers";
-
-chai.use(solidity);
-
-describe("Test for PhoneLinkCollection", () => {
-    const provider = hre.waffle.provider;
-    const [admin, owner, user1, user2, user3, relay, validator1, validator2, validator3] = provider.getWallets();
-
+describe("Test for PhoneLinkCollection", async () => {
+    const accounts = HardhatAccount.keys.map((m) => new ethers.Wallet(m, ethers.provider));
+    const [admin, owner, user1, user2, user3, relay, validator1, validator2, validator3] = accounts;
     const validators = [validator1, validator2, validator3];
     let contract: PhoneLinkCollection;
     let requestId: string;
 
     before(async () => {
-        const factory = await hre.ethers.getContractFactory("PhoneLinkCollection");
-        contract = (await factory.connect(admin).deploy(validators.map((m) => m.address))) as PhoneLinkCollection;
-        await contract.deployed();
-        await contract.deployTransaction.wait();
+        const factory = await ethers.getContractFactory("PhoneLinkCollection");
+        contract = (await upgrades.deployProxy(factory.connect(admin), [validators.map((m) => m.address)], {
+            initializer: "initialize",
+            kind: "uups",
+        })) as unknown as PhoneLinkCollection;
+        await contract.waitForDeployment();
     });
 
     it("Add an request item", async () => {
@@ -64,6 +60,7 @@ describe("Test for PhoneLinkCollection", () => {
 
         const nonce = await contract.nonceOf(user2.address);
         const signature = await ContractUtils.signRequestHash(user2, hash, nonce);
+
         requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
         expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
         await expect(contract.connect(relay).addRequest(requestId, hash, user2.address, signature))
@@ -105,29 +102,30 @@ describe("Test for PhoneLinkCollection", () => {
         let idx = 0;
         for (const item of res) {
             assert.strictEqual(item.validator, validators[idx++].address);
-            assert.strictEqual(item.status, 1);
+            assert.strictEqual(item.status, 1n);
         }
     });
 
     it("Validator's address", async () => {
         const res = await contract.getAddressOfValidators();
-        assert.deepStrictEqual(
-            res,
-            validators.map((m) => m.address)
-        );
+        const expected = validators.map((m) => m.address);
+        assert.deepStrictEqual(res.length, expected.length);
+        for (let idx = 0; idx < res.length; idx++) {
+            assert.deepStrictEqual(res[idx], expected[idx]);
+        }
     });
 
     it("Validator length", async () => {
         const res = await contract.getValidatorLength();
-        assert.deepStrictEqual(res, BigNumber.from(3));
+        assert.deepStrictEqual(res, 3n);
     });
 
     it("Check Validator", async () => {
-        const length = (await contract.getValidatorLength()).toNumber();
+        const length = await contract.getValidatorLength();
         for (let idx = 0; idx < length; idx++) {
             const res = await contract.getValidator(idx);
             assert.strictEqual(res.validator, validators[idx++].address);
-            assert.strictEqual(res.status, 1);
+            assert.strictEqual(res.status, 1n);
         }
     });
 

@@ -2,7 +2,7 @@ import { ContractUtils } from "../src/utils/ContractUtils";
 import { Utils } from "../src/utils/Utils";
 import { PhoneLinkCollection } from "../typechain-types";
 
-import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-ethers";
 import * as hre from "hardhat";
 
 import axios from "axios";
