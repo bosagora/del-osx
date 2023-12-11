@@ -1,22 +1,18 @@
+import "@nomicfoundation/hardhat-ethers";
+
 import { ISubmitData, ITransaction } from "../types";
 
-import crypto from "crypto";
-import { BigNumberish, Signer } from "ethers";
-// tslint:disable-next-line:no-submodule-imports
-import { arrayify } from "ethers/lib/utils";
-import * as hre from "hardhat";
+import { defaultAbiCoder } from "@ethersproject/abi";
+import { BigNumberish } from "@ethersproject/bignumber";
+import { arrayify } from "@ethersproject/bytes";
+import { keccak256 } from "@ethersproject/keccak256";
+import { randomBytes } from "@ethersproject/random";
+import { verifyMessage } from "@ethersproject/wallet";
+import { Signer } from "ethers";
 
 export class ContractUtils {
     public static NullAddress = "0x0000000000000000000000000000000000000000";
     public static NullBytes32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
-    public static sha256(data: Buffer): Buffer {
-        return crypto.createHash("sha256").update(data).digest();
-    }
-
-    public static sha256String(data: string): string {
-        return ContractUtils.BufferToString(crypto.createHash("sha256").update(Buffer.from(data.trim())).digest());
-    }
 
     public static StringToBuffer(hex: string): Buffer {
         const start = hex.substring(0, 2) === "0x" ? 2 : 0;
@@ -32,27 +28,21 @@ export class ContractUtils {
     }
 
     public static getPhoneHash(phone: string): string {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["string", "string"],
-            ["BOSagora Phone Number", phone]
-        );
-        return hre.ethers.utils.keccak256(encodedResult);
+        const encodedResult = defaultAbiCoder.encode(["string", "string"], ["BOSagora Phone Number", phone]);
+        return keccak256(encodedResult);
     }
 
     public static getRequestId(phoneHash: string, address: string, nonce: BigNumberish): string {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "address", "uint256", "bytes32"],
-            [phoneHash, address, nonce, crypto.randomBytes(32)]
+            [phoneHash, address, nonce, randomBytes(32)]
         );
-        return hre.ethers.utils.keccak256(encodedResult);
+        return keccak256(encodedResult);
     }
 
     public static getRequestHash(hash: string, address: string, nonce: BigNumberish): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "address", "uint256"],
-            [hash, address, nonce]
-        );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        const encodedResult = defaultAbiCoder.encode(["bytes32", "address", "uint256"], [hash, address, nonce]);
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signRequestHash(signer: Signer, hash: string, nonce: BigNumberish): Promise<string> {
@@ -64,7 +54,7 @@ export class ContractUtils {
         const message = ContractUtils.getRequestHash(hash, address, nonce);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
@@ -72,11 +62,11 @@ export class ContractUtils {
     }
 
     public static getRequestPhoneHash(phone: string, address: string, nonce: BigNumberish): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "address", "uint256"],
             [ContractUtils.getPhoneHash(phone), address, nonce]
         );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signRequestPhone(signer: Signer, phone: string, nonce: BigNumberish): Promise<string> {
@@ -88,7 +78,7 @@ export class ContractUtils {
         const message = ContractUtils.getRequestPhoneHash(phone, address, nonce);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
@@ -96,7 +86,7 @@ export class ContractUtils {
     }
 
     public static getTxHash(tx: ITransaction): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "address", "uint256", "bytes32", "address"],
             [
                 ContractUtils.getPhoneHash(tx.request.phone),
@@ -106,7 +96,7 @@ export class ContractUtils {
                 tx.receiver,
             ]
         );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signTx(signer: Signer, tx: ITransaction): Promise<string> {
@@ -118,7 +108,7 @@ export class ContractUtils {
         const message = ContractUtils.getTxHash(tx);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }
@@ -126,11 +116,11 @@ export class ContractUtils {
     }
 
     public static getSubmitHash(data: ISubmitData): Uint8Array {
-        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(
+        const encodedResult = defaultAbiCoder.encode(
             ["bytes32", "string", "address"],
             [data.requestId, data.code, data.receiver]
         );
-        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+        return arrayify(keccak256(encodedResult));
     }
 
     public static async signSubmit(signer: Signer, data: ISubmitData): Promise<string> {
@@ -142,7 +132,7 @@ export class ContractUtils {
         const message = ContractUtils.getSubmitHash(data);
         let res: string;
         try {
-            res = hre.ethers.utils.verifyMessage(message, signature);
+            res = verifyMessage(message, signature);
         } catch (error) {
             return false;
         }

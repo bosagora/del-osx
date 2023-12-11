@@ -30,8 +30,6 @@ jobs:
         env:
           REPORT_GAS: true
         run: cd packages/contracts && yarn run test
-      - name: Run solidity-docgen
-        run: cd packages/contracts && yarn run docgen
 
       - name: Copy env of Validator
         run: cp packages/validator/env/.env.sample packages/validator/env/.env

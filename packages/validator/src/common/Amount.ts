@@ -1,6 +1,6 @@
 import { iota } from "../utils/Utils";
 
-import { BigNumber } from "ethers";
+import { BigNumber } from "@ethersproject/bignumber";
 
 /**
  * The class that defines the Amount

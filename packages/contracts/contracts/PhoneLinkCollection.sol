@@ -1,55 +1,18 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "./storage/PhoneStorage.sol";
 
 /// Contract for converting e-mail to wallet
-contract PhoneLinkCollection {
-    bytes32 public constant NULL = 0x32105b1d0b88ada155176b58ee08b45c31e4f2f7337475831982c313533b880c;
-
-    mapping(bytes32 => address) private phoneToAddress;
-    mapping(address => bytes32) private addressToPhone;
-    mapping(address => uint256) private nonce;
-
-    /// @notice 요청 아이템의 상태코드
-    enum RequestStatus {
-        INVALID,
-        REQUESTED,
-        ACCEPTED,
-        REJECTED
-    }
-
-    struct RequestItem {
-        bytes32 id;
-        bytes32 phone;
-        address wallet;
-        bytes signature;
-        uint32 agreement;
-        mapping(address => bool) voters;
-        RequestStatus status;
-    }
-    mapping(bytes32 => RequestItem) private requests;
-    bytes32[] private requestIds;
-
-    uint256 private quorum;
-
-    /// @notice 검증자의 상태코드
-    enum ValidatorStatus {
-        INVALID, //  초기값
-        ACTIVE //  검증자의 기능이 활성화됨
-    }
-
-    struct ValidatorItem {
-        address validator; // 검증자의 지갑주소
-        uint256 index;
-        string endpoint;
-        ValidatorStatus status; // 검증자의 상태
-    }
-
-    mapping(address => ValidatorItem) private validators;
-    address[] private validatorAddresses;
-
+contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
     /// @notice 등록요청인 완료된 후 발생되는 이벤트
     event AddedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 등록요청이 승인된 후 발생되는 이벤트
@@ -59,7 +22,10 @@ contract PhoneLinkCollection {
 
     /// @notice 생성자
     /// @param _validators 검증자들
-    constructor(address[] memory _validators) {
+    function initialize(address[] memory _validators) external initializer {
+        __Pausable_init();
+        __UUPSUpgradeable_init();
+        __Ownable_init_unchained(_msgSender());
         for (uint256 i = 0; i < _validators.length; ++i) {
             ValidatorItem memory item = ValidatorItem({
                 validator: _validators[i],
@@ -74,9 +40,21 @@ contract PhoneLinkCollection {
         quorum = uint256(2000) / uint256(3);
     }
 
+    function _authorizeUpgrade(address newImplementation) internal virtual override {
+        require(_msgSender() == owner(), "Unauthorized access");
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /// @notice 검증자들만 호출할 수 있도록 해준다.
     modifier onlyValidator() {
-        require(validators[msg.sender].status == ValidatorStatus.ACTIVE, "Not validator");
+        require(validators[_msgSender()].status == ValidatorStatus.ACTIVE, "Not validator");
         _;
     }
 
@@ -92,11 +70,19 @@ contract PhoneLinkCollection {
     /// @param _phone 휴대전화번호의 해시
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
-    function addRequest(bytes32 _id, bytes32 _phone, address _wallet, bytes calldata _signature) public {
+    function addRequest(
+        bytes32 _id,
+        bytes32 _phone,
+        address _wallet,
+        bytes calldata _signature
+    ) external whenNotPaused {
         require(requests[_id].status == RequestStatus.INVALID, "Invalid ID");
         require(_phone != NULL, "Invalid phone hash");
         bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, nonce[_wallet]));
-        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
+        require(
+            ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(dataHash), _signature) == _wallet,
+            "Invalid signature"
+        );
 
         nonce[_wallet]++;
 
@@ -112,12 +98,12 @@ contract PhoneLinkCollection {
 
     /// @notice 검증자들이 휴대전화번호 검증결과를 등록한다.
     /// @param _id 요청 아이디
-    function voteRequest(bytes32 _id) public onlyValidator {
+    function voteRequest(bytes32 _id) external onlyValidator {
         require(requests[_id].status != RequestStatus.INVALID, "Invalid ID");
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
-            if (req.voters[msg.sender] == false) {
-                req.voters[msg.sender] = true;
+            if (req.voters[_msgSender()] == false) {
+                req.voters[_msgSender()] = true;
                 req.agreement++;
             }
         }
@@ -125,7 +111,7 @@ contract PhoneLinkCollection {
 
     /// @notice 개표를 진행할 수 있는지를 확인한다.
     /// @param _id 요청 아이디
-    function canCountVote(bytes32 _id) public view returns (uint8) {
+    function canCountVote(bytes32 _id) external view whenNotPaused returns (uint8) {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
@@ -139,7 +125,7 @@ contract PhoneLinkCollection {
 
     /// @notice 개표를 진행한다.
     /// @param _id 요청 아이디
-    function countVote(bytes32 _id) public onlyValidator {
+    function countVote(bytes32 _id) external onlyValidator {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
@@ -172,8 +158,8 @@ contract PhoneLinkCollection {
     /// @notice 검증자 자신의 API 엔드포인트를 등록한다.
     /// @param _endpoint API 엔드포인트
     function updateEndpoint(string memory _endpoint) public onlyValidator {
-        require(validators[msg.sender].status != ValidatorStatus.INVALID, "No exists validator's info");
-        validators[msg.sender].endpoint = _endpoint;
+        require(validators[_msgSender()].status != ValidatorStatus.INVALID, "No exists validator's info");
+        validators[_msgSender()].endpoint = _endpoint;
     }
 
     /// @notice 휴대전화번호해시와 연결된 지갑주소를 리턴한다.

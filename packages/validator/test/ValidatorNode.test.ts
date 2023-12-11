@@ -5,35 +5,37 @@ import { ContractUtils } from "../src/utils/ContractUtils";
 import { PhoneLinkCollection } from "../typechain-types";
 import { delay, TestClient, TestValidatorNode } from "./helper/Utility";
 
-import chai, { expect } from "chai";
-import { solidity } from "ethereum-waffle";
-import * as hre from "hardhat";
+import { expect } from "chai";
 
 import assert from "assert";
 import ip from "ip";
 import * as path from "path";
 import URI from "urijs";
 
-chai.use(solidity);
+import { ethers, upgrades } from "hardhat";
+import { HardhatAccount } from "../src/HardhatAccount";
 
 describe("Test of ValidatorNode", function () {
     this.timeout(60 * 1000);
-    const provider = hre.waffle.provider;
-    const [deployer, validator1, user1, user2, user3] = provider.getWallets();
-
-    const validators = [validator1];
-    const users = [user1, user2, user3];
     const phones: string[] = ["01012341000", "01012341001", "01012341002"];
     const phoneHashes: string[] = phones.map((m) => ContractUtils.getPhoneHash(m));
     let linkCollectionContract: PhoneLinkCollection;
+    const accounts = HardhatAccount.keys.map((m) => new ethers.Wallet(m, ethers.provider));
+    const [deployer, validator1, user1, user2, user3] = accounts;
+    const validators = [validator1];
+    const users = [user1, user2, user3];
 
     const deployPhoneLinkCollection = async () => {
-        const linkCollectionFactory = await hre.ethers.getContractFactory("PhoneLinkCollection");
-        linkCollectionContract = (await linkCollectionFactory
-            .connect(deployer)
-            .deploy(validators.map((m) => m.address))) as PhoneLinkCollection;
-        await linkCollectionContract.deployed();
-        await linkCollectionContract.deployTransaction.wait();
+        const factory = await ethers.getContractFactory("PhoneLinkCollection");
+        linkCollectionContract = (await upgrades.deployProxy(
+            factory.connect(deployer),
+            [validators.map((m) => m.address)],
+            {
+                initializer: "initialize",
+                kind: "uups",
+            }
+        )) as unknown as PhoneLinkCollection;
+        await linkCollectionContract.waitForDeployment();
     };
 
     const client = new TestClient();
@@ -50,7 +52,7 @@ describe("Test of ValidatorNode", function () {
         before("Create Config", async () => {
             config = new Config();
             config.readFromFile(path.resolve(process.cwd(), "test", "helper", "config.yaml"));
-            config.contracts.phoneLinkCollectionAddress = linkCollectionContract.address;
+            config.contracts.phoneLinkCollectionAddress = await linkCollectionContract.getAddress();
             config.validator.validatorKey = validator1.privateKey;
             config.validator.authenticationMode = AuthenticationMode.NoSMSKnownCode;
         });

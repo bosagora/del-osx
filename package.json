@@ -5,6 +5,7 @@
   "repository": "https://github.com/bosagora/link-email-wallet-osx",
   "author": "BOSagora Foundation",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "workspaces": {
     "packages": [
       "packages/*"
