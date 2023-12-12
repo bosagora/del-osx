@@ -10,9 +10,17 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./storage/PhoneStorage.sol";
+import "./interface/IPhoneLinkCollection.sol";
 
 /// Contract for converting e-mail to wallet
-contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
+contract PhoneLinkCollection is
+    PhoneStorage,
+    Initializable,
+    OwnableUpgradeable,
+    UUPSUpgradeable,
+    PausableUpgradeable,
+    IPhoneLinkCollection
+{
     /// @notice 등록요청인 완료된 후 발생되는 이벤트
     event AddedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 등록요청이 승인된 후 발생되는 이벤트
