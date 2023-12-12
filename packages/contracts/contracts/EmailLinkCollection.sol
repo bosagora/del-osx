@@ -9,8 +9,8 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import "./storage/EmailStorage.sol";
-import "./interface/IEmailLinkCollection.sol";
+import "./storages/EmailStorage.sol";
+import "./interfaces/IEmailLinkCollection.sol";
 
 /// Contract for converting e-mail to wallet
 contract EmailLinkCollection is

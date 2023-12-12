@@ -9,8 +9,8 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import "./storage/PhoneStorage.sol";
-import "./interface/IPhoneLinkCollection.sol";
+import "./storages/PhoneStorage.sol";
+import "./interfaces/IPhoneLinkCollection.sol";
 
 /// Contract for converting e-mail to wallet
 contract PhoneLinkCollection is
