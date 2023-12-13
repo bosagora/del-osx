@@ -5,33 +5,6 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: {{dataSources.EmailLinkCollection.name}}
-    network: {{network}}
-    source:
-      address: '{{dataSources.EmailLinkCollection.address}}'
-      abi: EmailLinkCollection
-      startBlock: {{dataSources.EmailLinkCollection.startBlock}}
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - AcceptedRequestItem
-        - AddedRequestItem
-        - RejectedRequestItem
-      abis:
-        - name: EmailLinkCollection
-          file:  $DMS_OSX_MODULE/artifacts/contracts/EmailLinkCollection.sol/EmailLinkCollection.json
-      eventHandlers:
-        - event: AcceptedRequestItem(bytes32,bytes32,address)
-          handler: handleAcceptedRequestItem
-        - event: AddedRequestItem(bytes32,bytes32,address)
-          handler: handleAddedRequestItem
-        - event: RejectedRequestItem(bytes32,bytes32,address)
-          handler: handleRejectedRequestItem
-      file: ./src/email-link-collection.ts
-
-  - kind: ethereum
     name: {{dataSources.PhoneLinkCollection.name}}
     network: {{network}}
     source:

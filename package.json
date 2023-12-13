@@ -1,9 +1,10 @@
 {
   "name": "del-osx",
   "version": "0.1.0",
-  "description": "A smart contract framework that links email and wallet addresses",
-  "repository": "https://github.com/bosagora/link-email-wallet-osx",
+  "description": "A smart contract framework that links phone number and wallet address",
+  "repository": "https://github.com/bosagora/del-osx.git",
   "author": "BOSagora Foundation",
+  "license": "AGPL-3.0-or-later",
   "private": true,
   "workspaces": {
     "packages": [

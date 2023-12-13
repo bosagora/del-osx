@@ -66,7 +66,7 @@ export class ContractUtils {
 
     public static async signRequestHash(signer: Signer, hash: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestHash(hash, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
+        return await signer.signMessage(message);
     }
 
     public static verifyRequestHash(address: string, hash: string, nonce: BigNumberish, signature: string): boolean {
@@ -90,7 +90,7 @@ export class ContractUtils {
 
     public static async signRequestPhone(signer: Signer, phone: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestPhoneHash(phone, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
+        return await signer.signMessage(message);
     }
 
     public static verifyRequestPhone(address: string, phone: string, nonce: BigNumberish, signature: string): boolean {
@@ -114,7 +114,7 @@ export class ContractUtils {
 
     public static async signRequestEmail(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestEmailHash(email, await signer.getAddress(), nonce);
-        return signer.signMessage(message);
+        return await signer.signMessage(message);
     }
 
     public static verifyRequestEmail(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
