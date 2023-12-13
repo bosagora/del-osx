@@ -1,7 +1,7 @@
 {
     "name": "del-osx-artifacts",
-    "version": "1.1.2",
-    "description": "Contracts that links e-mail and wallet addresses",
+    "version": "2.0.0",
+    "description": "Contracts that links phone number and wallet address",
     "files": [
         "**/*.sol"
     ],
@@ -12,9 +12,9 @@
         "build:npm": "rollup --config rollup.config.ts",
         "coverage": "hardhat coverage --solcoverjs ./.solcover.js",
         "deploy:hardhat": "npx hardhat deploy",
-        "deploy:mainnet": "npx hardhat deploy --network bosagora_mainnet",
-        "deploy:testnet": "npx hardhat deploy --network bosagora_testnet",
-        "deploy:devnet": "npx hardhat deploy --network bosagora_devnet",
+        "deploy:mainnet": "hardhat run deploy/bosagora_devnet/deploy.ts --network bosagora_mainnet",
+        "deploy:testnet": "hardhat run deploy/bosagora_devnet/deploy.ts --network bosagora_testnet",
+        "deploy:devnet": "hardhat run deploy/bosagora_devnet/deploy.ts --network bosagora_devnet",
         "lint": "node_modules/.bin/tslint --config tslint.json \"{src,test}/**/*.ts\"",
         "lint-fix": "node_modules/.bin/tslint --fix --config tslint.json \"{src,test}/**/*.ts\"",
         "docgen": "hardhat docgen",
@@ -26,14 +26,17 @@
         "url": "git+https://github.com/bosagora/del-osx.git"
     },
     "author": "BOSagora Foundation",
+    "license": "AGPL-3.0-or-later",
     "bugs": {
         "url": ""
     },
     "homepage": "",
     "devDependencies": {
-        "@nomiclabs/hardhat-ethers": "^2.2.1",
+        "@nomiclabs/hardhat-ethers": "^2.2.3",
         "@nomiclabs/hardhat-waffle": "^2.0.2",
-        "@openzeppelin/contracts": "^4.8.2",
+        "@openzeppelin/contracts": "^4.9.5",
+        "@openzeppelin/contracts-upgradeable": "^4.9.5",
+        "@openzeppelin/hardhat-upgrades": "^1.28.0",
         "@rollup/plugin-json": "^4.1.0",
         "@rollup/plugin-typescript": "^8.3.1",
         "@typechain/ethers-v5": "^10.1.0",
@@ -48,7 +51,6 @@
         "ethereum-waffle": "^4.0.10",
         "ethers": "npm:boa-ethers2@^5.7.9",
         "hardhat": "^2.12.7",
-        "hardhat-deploy": "^0.9.26",
         "hardhat-gas-reporter": "^1.0.7",
         "mocha": "10.1.0",
         "prettier": "^2.5.1",

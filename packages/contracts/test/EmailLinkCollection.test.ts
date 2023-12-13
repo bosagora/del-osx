@@ -1,21 +1,21 @@
-import { ContractUtils } from "../src/utils/ContractUtils";
-import { EmailLinkCollection } from "../typechain-types";
-
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
+import "@openzeppelin/hardhat-upgrades";
+import { ethers, upgrades, waffle } from "hardhat";
+
+import { ContractUtils } from "../src/utils/ContractUtils";
+import { EmailLinkCollection } from "../typechain-types";
 
 import assert from "assert";
 import chai, { expect } from "chai";
 import { solidity } from "ethereum-waffle";
-
-import * as hre from "hardhat";
 
 import { BigNumber } from "ethers";
 
 chai.use(solidity);
 
 describe("Test for EmailLinkCollection", () => {
-    const provider = hre.waffle.provider;
+    const provider = waffle.provider;
     const [admin, owner, user1, user2, user3, relay, validator1, validator2, validator3] = provider.getWallets();
 
     const validators = [validator1, validator2, validator3];
@@ -23,10 +23,12 @@ describe("Test for EmailLinkCollection", () => {
     let requestId: string;
 
     before(async () => {
-        const factory = await hre.ethers.getContractFactory("EmailLinkCollection");
-        contract = (await factory.connect(admin).deploy(validators.map((m) => m.address))) as EmailLinkCollection;
+        const factory = await ethers.getContractFactory("EmailLinkCollection");
+        contract = (await upgrades.deployProxy(factory.connect(admin), [validators.map((m) => m.address)], {
+            initializer: "initialize",
+            kind: "uups",
+        })) as EmailLinkCollection;
         await contract.deployed();
-        await contract.deployTransaction.wait();
     });
 
     it("Add an request item", async () => {

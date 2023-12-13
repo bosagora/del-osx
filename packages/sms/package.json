@@ -17,8 +17,8 @@
         "type": "git",
         "url": "git+https://github.com/bosagora/del-osx.git"
     },
-    "author": "",
-    "license": "MIT",
+    "author": "BOSagora Foundation",
+    "license": "AGPL-3.0-or-later",
     "bugs": {
         "url": ""
     },
