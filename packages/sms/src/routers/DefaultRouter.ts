@@ -73,7 +73,7 @@ export class DefaultRouter {
 
             const msg: string = String(req.body.msg);
             const sender: string = String(req.body.sender);
-            const receiver: string = Utils.removeNationCode(String(req.body.receiver));
+            const receiver: string = Utils.checkPhoneNumber(String(req.body.receiver));
             const smsResponse = await this.sendSMS(msg, sender, receiver);
             logger.info(`POST /send : ${smsResponse.message}`);
             return res.status(200).json(this.makeResponseData(200, smsResponse, null));
@@ -85,6 +85,7 @@ export class DefaultRouter {
                 })
             );
         } finally {
+            ///
         }
     }
 
@@ -96,9 +97,9 @@ export class DefaultRouter {
         const req = {
             headers: { "content-type": "application/json" },
             body: {
-                msg: msg,
-                sender: sender,
-                receiver: receiver,
+                msg,
+                sender,
+                receiver,
                 testmode_yn: process.env.SMS_TESTMODE || "",
             },
         };
