@@ -1,5 +1,7 @@
 import process from "process";
 
+import { PhoneNumberFormat, PhoneNumberUtil } from "google-libphonenumber";
+
 export class Utils {
     /**
      * Check whether the string is a integer.
@@ -83,9 +85,9 @@ export class Utils {
         phoneNumber = phoneNumber.replace(/\]/g, "");
 
         if (phoneNumber.length > 11) {
-            if (phoneNumber.substring(0, 2) == "82") {
+            if (phoneNumber.substring(0, 2) === "82") {
                 phoneNumber = phoneNumber.substring(2);
-            } else if (phoneNumber.substring(0, 3) == "082") {
+            } else if (phoneNumber.substring(0, 3) === "082") {
                 phoneNumber = phoneNumber.substring(3);
             }
         }
@@ -99,6 +101,25 @@ export class Utils {
         }
 
         return phoneNumber;
+    }
+
+    public static checkPhoneNumber(phone: string): string {
+        if (phone.length > 11) {
+            if (phone.substring(0, 1) !== "+") {
+                if (phone.substring(0, 2) === "82") {
+                    phone = "+" + phone;
+                }
+                if (phone.substring(0, 2) === "082") {
+                    phone = "+" + phone.substring(1);
+                }
+            }
+        } else {
+            phone = "+82 " + phone;
+        }
+
+        const phoneUtil = PhoneNumberUtil.getInstance();
+        const number = phoneUtil.parseAndKeepRawInput(phone, "ZZ");
+        return phoneUtil.format(number, PhoneNumberFormat.NATIONAL).replace(/\-/g, "");
     }
 }
 
