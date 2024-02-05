@@ -21,6 +21,8 @@ contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable,
     /// @notice 등록요청이 거부된 후 발생되는 이벤트
     event RejectedRequestItem(bytes32 id, bytes32 phone, address wallet);
 
+    event RemovedItem(bytes32 phone, address wallet);
+
     /// @notice 생성자
     /// @param _validators 검증자들
     function initialize(address[] memory _validators) external initializer {
@@ -136,6 +138,26 @@ contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable,
                     emit AcceptedRequestItem(req.id, req.phone, req.wallet);
                 }
             }
+        }
+    }
+
+    /// @notice 휴대전화번호-지갑주소 항목을 삭제한다.
+    /// @param _wallet 지갑주소
+    /// @param _signature 지갑주소의 서명
+    function remove(address _wallet, bytes calldata _signature) external {
+        bytes32 dataHash = keccak256(abi.encode(_wallet, nonce[_wallet]));
+        require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
+
+        nonce[_wallet]++;
+
+        bytes32 phone = addressToPhone[_wallet];
+        if (phone != 0) {
+            delete addressToPhone[_wallet];
+            address account = phoneToAddress[phone];
+            if (account != address(0x0)) {
+                delete phoneToAddress[phone];
+            }
+            emit RemovedItem(phone, _wallet);
         }
     }
 

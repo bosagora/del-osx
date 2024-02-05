@@ -11,6 +11,7 @@ import chai, { expect } from "chai";
 import { solidity } from "ethereum-waffle";
 
 import { BigNumber } from "ethers";
+import { AddressZero, HashZero } from "@ethersproject/constants";
 
 chai.use(solidity);
 
@@ -86,6 +87,21 @@ describe("Test for EmailLinkCollection", () => {
 
         assert.deepStrictEqual(await contract.toAddress(hash), user2.address);
         assert.deepStrictEqual(await contract.toEmail(user2.address), hash);
+    });
+
+    it("Remove item", async () => {
+        const email = "abc@example.com";
+        const hash = ContractUtils.getEmailHash(email);
+        const nonce = await contract.nonceOf(user2.address);
+        const message = ContractUtils.getRemoveMessage(user2.address, nonce);
+        const signature = await ContractUtils.signMessage(user2, message);
+
+        await expect(contract.connect(validator1).remove(user2.address, signature))
+            .to.emit(contract, "RemovedItem")
+            .withArgs(hash, user2.address);
+
+        assert.deepStrictEqual(await contract.toAddress(hash), AddressZero);
+        assert.deepStrictEqual(await contract.toEmail(user2.address), HashZero);
     });
 
     it("Check Null", async () => {
