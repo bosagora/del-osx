@@ -64,9 +64,18 @@ export class ContractUtils {
         return arrayify(hre.ethers.utils.keccak256(encodedResult));
     }
 
+    public static getRemoveMessage(address: string, nonce: BigNumberish): Uint8Array {
+        const encodedResult = hre.ethers.utils.defaultAbiCoder.encode(["address", "uint256"], [address, nonce]);
+        return arrayify(hre.ethers.utils.keccak256(encodedResult));
+    }
+
+    public static async signMessage(signer: Signer, message: Uint8Array): Promise<string> {
+        return signer.signMessage(message);
+    }
+
     public static async signRequestHash(signer: Signer, hash: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestHash(hash, await signer.getAddress(), nonce);
-        return await signer.signMessage(message);
+        return signer.signMessage(message);
     }
 
     public static verifyRequestHash(address: string, hash: string, nonce: BigNumberish, signature: string): boolean {
@@ -90,7 +99,7 @@ export class ContractUtils {
 
     public static async signRequestPhone(signer: Signer, phone: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestPhoneHash(phone, await signer.getAddress(), nonce);
-        return await signer.signMessage(message);
+        return signer.signMessage(message);
     }
 
     public static verifyRequestPhone(address: string, phone: string, nonce: BigNumberish, signature: string): boolean {
@@ -114,7 +123,7 @@ export class ContractUtils {
 
     public static async signRequestEmail(signer: Signer, email: string, nonce: BigNumberish): Promise<string> {
         const message = ContractUtils.getRequestEmailHash(email, await signer.getAddress(), nonce);
-        return await signer.signMessage(message);
+        return signer.signMessage(message);
     }
 
     public static verifyRequestEmail(address: string, email: string, nonce: BigNumberish, signature: string): boolean {
