@@ -2,6 +2,7 @@ import * as mkdirp from "mkdirp";
 import path from "path";
 import * as sqlite from "sqlite3";
 import { IValidationData, PhoneValidationStatus, ProcessStep } from "../types";
+import { ContractUtils } from "../utils/ContractUtils";
 
 export class Storage {
     protected _db: sqlite.Database | undefined;
@@ -193,6 +194,10 @@ export class Storage {
                  requestId = ?`,
             [processStep, requestId]
         );
+    }
+
+    public async removeExpiredValidation() {
+        await this.run(`DELETE FROM validation WHERE expire + 86400 < ?`, [ContractUtils.getTimeStamp()]);
     }
 
     public getUnfinishedJob(): Promise<IValidationData[]> {

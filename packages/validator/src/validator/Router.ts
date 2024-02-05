@@ -801,6 +801,7 @@ export class Router {
         if (old_period !== this._periodNumber) {
             await this.makePeers();
             await this._peers.check();
+            await this._storage.removeExpiredValidation();
         }
         this._oldTimeStamp = currentTime;
     }
