@@ -3,10 +3,6 @@
 pragma solidity ^0.8.2;
 
 interface IPhoneLinkCollection {
-    function pause() external;
-
-    function unpause() external;
-
     function toAddress(bytes32 _phone) external view returns (address);
 
     function toPhone(address _wallet) external view returns (bytes32);

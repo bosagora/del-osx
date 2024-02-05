@@ -13,14 +13,7 @@ import "./storages/EmailStorage.sol";
 import "./interfaces/IEmailLinkCollection.sol";
 
 /// Contract for converting e-mail to wallet
-contract EmailLinkCollection is
-    EmailStorage,
-    Initializable,
-    OwnableUpgradeable,
-    UUPSUpgradeable,
-    PausableUpgradeable,
-    IEmailLinkCollection
-{
+contract EmailLinkCollection is EmailStorage, Initializable, OwnableUpgradeable, UUPSUpgradeable, IEmailLinkCollection {
     /// @notice 등록요청인 완료된 후 발생되는 이벤트
     event AddedRequestItem(bytes32 id, bytes32 email, address wallet);
     /// @notice 등록요청이 승인된 후 발생되는 이벤트
@@ -31,7 +24,6 @@ contract EmailLinkCollection is
     /// @notice 생성자
     /// @param _validators 검증자들
     function initialize(address[] memory _validators) external initializer {
-        __Pausable_init();
         __UUPSUpgradeable_init();
         __Ownable_init_unchained();
         for (uint256 i = 0; i < _validators.length; ++i) {
@@ -52,14 +44,6 @@ contract EmailLinkCollection is
         require(_msgSender() == owner(), "Unauthorized access");
     }
 
-    function pause() external override onlyOwner {
-        _pause();
-    }
-
-    function unpause() external override onlyOwner {
-        _unpause();
-    }
-
     /// @notice 검증자들만 호출할 수 있도록 해준다.
     modifier onlyValidator() {
         require(validators[_msgSender()].status == ValidatorStatus.ACTIVE, "Not validator");
@@ -78,12 +62,7 @@ contract EmailLinkCollection is
     /// @param _email 이메일의 해시
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
-    function addRequest(
-        bytes32 _id,
-        bytes32 _email,
-        address _wallet,
-        bytes calldata _signature
-    ) external whenNotPaused {
+    function addRequest(bytes32 _id, bytes32 _email, address _wallet, bytes calldata _signature) external {
         require(requests[_id].status == RequestStatus.INVALID, "Invalid ID");
         require(_email != NULL, "Invalid email hash");
         bytes32 dataHash = keccak256(abi.encode(_email, _wallet, nonce[_wallet]));

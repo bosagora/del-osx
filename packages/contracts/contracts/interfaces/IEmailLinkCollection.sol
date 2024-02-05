@@ -3,10 +3,6 @@
 pragma solidity ^0.8.2;
 
 interface IEmailLinkCollection {
-    function pause() external;
-
-    function unpause() external;
-
     function toAddress(bytes32 _email) external view returns (address);
 
     function toEmail(address _wallet) external view returns (bytes32);

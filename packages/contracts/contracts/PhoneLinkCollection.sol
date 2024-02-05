@@ -13,14 +13,7 @@ import "./storages/PhoneStorage.sol";
 import "./interfaces/IPhoneLinkCollection.sol";
 
 /// Contract for converting e-mail to wallet
-contract PhoneLinkCollection is
-    PhoneStorage,
-    Initializable,
-    OwnableUpgradeable,
-    UUPSUpgradeable,
-    PausableUpgradeable,
-    IPhoneLinkCollection
-{
+contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable, UUPSUpgradeable, IPhoneLinkCollection {
     /// @notice 등록요청인 완료된 후 발생되는 이벤트
     event AddedRequestItem(bytes32 id, bytes32 phone, address wallet);
     /// @notice 등록요청이 승인된 후 발생되는 이벤트
@@ -31,7 +24,6 @@ contract PhoneLinkCollection is
     /// @notice 생성자
     /// @param _validators 검증자들
     function initialize(address[] memory _validators) external initializer {
-        __Pausable_init();
         __UUPSUpgradeable_init();
         __Ownable_init_unchained();
         for (uint256 i = 0; i < _validators.length; ++i) {
@@ -52,14 +44,6 @@ contract PhoneLinkCollection is
         require(_msgSender() == owner(), "Unauthorized access");
     }
 
-    function pause() external override onlyOwner {
-        _pause();
-    }
-
-    function unpause() external override onlyOwner {
-        _unpause();
-    }
-
     /// @notice 검증자들만 호출할 수 있도록 해준다.
     modifier onlyValidator() {
         require(validators[_msgSender()].status == ValidatorStatus.ACTIVE, "Not validator");
@@ -78,12 +62,7 @@ contract PhoneLinkCollection is
     /// @param _phone 휴대전화번호의 해시
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
-    function addRequest(
-        bytes32 _id,
-        bytes32 _phone,
-        address _wallet,
-        bytes calldata _signature
-    ) external whenNotPaused {
+    function addRequest(bytes32 _id, bytes32 _phone, address _wallet, bytes calldata _signature) external {
         require(requests[_id].status == RequestStatus.INVALID, "Invalid ID");
         require(_phone != NULL, "Invalid phone hash");
         bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, nonce[_wallet]));
@@ -116,7 +95,7 @@ contract PhoneLinkCollection is
 
     /// @notice 개표를 진행할 수 있는지를 확인한다.
     /// @param _id 요청 아이디
-    function canCountVote(bytes32 _id) external view whenNotPaused returns (uint8) {
+    function canCountVote(bytes32 _id) external view returns (uint8) {
         RequestItem storage req = requests[_id];
         if (req.status == RequestStatus.REQUESTED) {
             if ((req.agreement * 1000) / validatorAddresses.length >= quorum) {
