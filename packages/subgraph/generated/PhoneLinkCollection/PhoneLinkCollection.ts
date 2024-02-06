@@ -142,24 +142,6 @@ export class OwnershipTransferred__Params {
   }
 }
 
-export class Paused extends ethereum.Event {
-  get params(): Paused__Params {
-    return new Paused__Params(this);
-  }
-}
-
-export class Paused__Params {
-  _event: Paused;
-
-  constructor(event: Paused) {
-    this._event = event;
-  }
-
-  get account(): Address {
-    return this._event.parameters[0].value.toAddress();
-  }
-}
-
 export class RejectedRequestItem extends ethereum.Event {
   get params(): RejectedRequestItem__Params {
     return new RejectedRequestItem__Params(this);
@@ -186,21 +168,25 @@ export class RejectedRequestItem__Params {
   }
 }
 
-export class Unpaused extends ethereum.Event {
-  get params(): Unpaused__Params {
-    return new Unpaused__Params(this);
+export class RemovedItem extends ethereum.Event {
+  get params(): RemovedItem__Params {
+    return new RemovedItem__Params(this);
   }
 }
 
-export class Unpaused__Params {
-  _event: Unpaused;
+export class RemovedItem__Params {
+  _event: RemovedItem;
 
-  constructor(event: Unpaused) {
+  constructor(event: RemovedItem) {
     this._event = event;
   }
 
-  get account(): Address {
-    return this._event.parameters[0].value.toAddress();
+  get phone(): Bytes {
+    return this._event.parameters[0].value.toBytes();
+  }
+
+  get wallet(): Address {
+    return this._event.parameters[1].value.toAddress();
   }
 }
 
@@ -523,21 +509,6 @@ export class PhoneLinkCollection extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
-  paused(): boolean {
-    let result = super.call("paused", "paused():(bool)", []);
-
-    return result[0].toBoolean();
-  }
-
-  try_paused(): ethereum.CallResult<boolean> {
-    let result = super.tryCall("paused", "paused():(bool)", []);
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBoolean());
-  }
-
   proxiableUUID(): Bytes {
     let result = super.call("proxiableUUID", "proxiableUUID():(bytes32)", []);
 
@@ -698,28 +669,36 @@ export class InitializeCall__Outputs {
   }
 }
 
-export class PauseCall extends ethereum.Call {
-  get inputs(): PauseCall__Inputs {
-    return new PauseCall__Inputs(this);
+export class RemoveCall extends ethereum.Call {
+  get inputs(): RemoveCall__Inputs {
+    return new RemoveCall__Inputs(this);
   }
 
-  get outputs(): PauseCall__Outputs {
-    return new PauseCall__Outputs(this);
+  get outputs(): RemoveCall__Outputs {
+    return new RemoveCall__Outputs(this);
   }
 }
 
-export class PauseCall__Inputs {
-  _call: PauseCall;
+export class RemoveCall__Inputs {
+  _call: RemoveCall;
 
-  constructor(call: PauseCall) {
+  constructor(call: RemoveCall) {
     this._call = call;
   }
+
+  get _wallet(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+
+  get _signature(): Bytes {
+    return this._call.inputValues[1].value.toBytes();
+  }
 }
 
-export class PauseCall__Outputs {
-  _call: PauseCall;
+export class RemoveCall__Outputs {
+  _call: RemoveCall;
 
-  constructor(call: PauseCall) {
+  constructor(call: RemoveCall) {
     this._call = call;
   }
 }
@@ -776,32 +755,6 @@ export class TransferOwnershipCall__Outputs {
   _call: TransferOwnershipCall;
 
   constructor(call: TransferOwnershipCall) {
-    this._call = call;
-  }
-}
-
-export class UnpauseCall extends ethereum.Call {
-  get inputs(): UnpauseCall__Inputs {
-    return new UnpauseCall__Inputs(this);
-  }
-
-  get outputs(): UnpauseCall__Outputs {
-    return new UnpauseCall__Outputs(this);
-  }
-}
-
-export class UnpauseCall__Inputs {
-  _call: UnpauseCall;
-
-  constructor(call: UnpauseCall) {
-    this._call = call;
-  }
-}
-
-export class UnpauseCall__Outputs {
-  _call: UnpauseCall;
-
-  constructor(call: UnpauseCall) {
     this._call = call;
   }
 }
