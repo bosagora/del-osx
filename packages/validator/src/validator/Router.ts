@@ -29,6 +29,8 @@ import express from "express";
 import { body, validationResult } from "express-validator";
 import ip from "ip";
 
+import { PhoneNumberFormat, PhoneNumberUtil } from "google-libphonenumber";
+
 export class Router {
     private readonly _validator: ValidatorNode;
     private readonly _config: Config;
@@ -51,6 +53,8 @@ export class Router {
     private readonly _phoneSender: ISMSSender;
     private readonly _codeGenerator: ICodeGenerator;
 
+    private _phoneUtil: PhoneNumberUtil;
+
     constructor(
         validator: ValidatorNode,
         config: Config,
@@ -59,6 +63,7 @@ export class Router {
         phoneSender: ISMSSender,
         codeGenerator: ICodeGenerator
     ) {
+        this._phoneUtil = PhoneNumberUtil.getInstance();
         this._validator = validator;
         this._config = config;
         this._storage = storage;
@@ -285,7 +290,7 @@ export class Router {
         logger.http({
             validatorIndex: this._validatorIndex,
             method: "Router.postRequest()",
-            message: "POST /request",
+            message: `POST /request - ${req.ip}:${JSON.stringify(req.body)}`,
         });
 
         const errors = validationResult(req);
@@ -299,7 +304,23 @@ export class Router {
         }
 
         try {
-            const phone: string = String(req.body.phone).trim(); // 전화번호 해시
+            let phone: string = String(req.body.phone).trim();
+            try {
+                const number = this._phoneUtil.parseAndKeepRawInput(phone, "ZZ");
+                if (!this._phoneUtil.isValidNumber(number)) {
+                    return res.status(200).json(
+                        this.makeResponseData(401, undefined, {
+                            message: "Invalid phone number",
+                        })
+                    );
+                } else {
+                    phone = this._phoneUtil.format(number, PhoneNumberFormat.INTERNATIONAL);
+                }
+            } catch (e) {
+                this.makeResponseData(401, undefined, {
+                    message: "Invalid phone number",
+                });
+            }
             const address: string = String(req.body.address).trim(); // 주소
             const signature: string = String(req.body.signature).trim(); // 서명
             const nonce = await (await this.getContract()).nonceOf(address);
@@ -363,7 +384,7 @@ export class Router {
         logger.http({
             validatorIndex: this._validatorIndex,
             method: "Router.postBroadcast()",
-            message: "POST /broadcast",
+            message: `POST /broadcast - ${req.ip}:${JSON.stringify(req.body)}`,
         });
 
         const errors = validationResult(req);
@@ -377,7 +398,23 @@ export class Router {
         }
 
         try {
-            const phone = String(req.body.request.phone).trim();
+            let phone: string = String(req.body.request.phone).trim();
+            try {
+                const number = this._phoneUtil.parseAndKeepRawInput(phone, "ZZ");
+                if (!this._phoneUtil.isValidNumber(number)) {
+                    return res.status(200).json(
+                        this.makeResponseData(401, undefined, {
+                            message: "Invalid phone number",
+                        })
+                    );
+                } else {
+                    phone = this._phoneUtil.format(number, PhoneNumberFormat.INTERNATIONAL);
+                }
+            } catch (e) {
+                this.makeResponseData(401, undefined, {
+                    message: "Invalid phone number",
+                });
+            }
             const address = String(req.body.request.address).trim();
             const nonce = String(req.body.request.nonce).trim();
             const signature = String(req.body.request.signature).trim();
@@ -447,7 +484,7 @@ export class Router {
         logger.http({
             validatorIndex: this._validatorIndex,
             method: "Router.postSubmit()",
-            message: "POST /submit",
+            message: `POST /submit - ${req.ip}:${JSON.stringify(req.body)}`,
         });
 
         const errors = validationResult(req);
@@ -492,7 +529,7 @@ export class Router {
         logger.http({
             validatorIndex: this._validatorIndex,
             method: "Router.postBroadcastSubmit()",
-            message: "POST /broadcastSubmit",
+            message: `POST /broadcastSubmit - ${req.ip}:${JSON.stringify(req.body)}`,
         });
 
         const errors = validationResult(req);

@@ -1677,7 +1677,7 @@
 
 "@types/google-libphonenumber@^7.4.30":
   version "7.4.30"
-  resolved "https://registry.npmjs.org/@types/google-libphonenumber/-/google-libphonenumber-7.4.30.tgz"
+  resolved "https://registry.yarnpkg.com/@types/google-libphonenumber/-/google-libphonenumber-7.4.30.tgz#a47ed8f1f237bd43edbd1c8aff24400b0fd9b2fe"
   integrity sha512-Td1X1ayRxePEm6/jPHUBs2tT6TzW1lrVB6ZX7ViPGellyzO/0xMNi+wx5nH6jEitjznq276VGIqjK5qAju0XVw==
 
 "@types/http-cache-semantics@*":
@@ -4978,6 +4978,11 @@ google-libphonenumber@^3.2.33:
   version "3.2.33"
   resolved "https://registry.npmjs.org/google-libphonenumber/-/google-libphonenumber-3.2.33.tgz"
   integrity sha512-1QKCvAlfq8zY1mviORI9lDzM3I/hwm9+h0CwYBTLq59DBbSHMd5zBOLqHZFiBLicRpwIz46Nynvbywj1XApKvA==
+
+google-libphonenumber@^3.2.34:
+  version "3.2.34"
+  resolved "https://registry.yarnpkg.com/google-libphonenumber/-/google-libphonenumber-3.2.34.tgz#ef29b53be0f9fb517aaa53d26a541150f86ec921"
+  integrity sha512-CLwkp0lZvMywh6dCh0T3Fm8XsfJhLAupc8AECwYkJNQBPW8wQPrv/tV0oFKCs8FMw+pTQyNPZoycgBzYjqtTZQ==
 
 gopd@^1.0.1:
   version "1.0.1"

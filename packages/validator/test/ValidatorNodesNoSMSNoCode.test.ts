@@ -28,7 +28,7 @@ describe("Test of ValidatorNode - NoPhoneNoCode", function () {
 
     const validators = [validator1, validator2, validator3];
     const users = [user1, user2, user3];
-    const phones: string[] = ["01012341000", "01012341001", "01012341002"];
+    const phones: string[] = ["+82 10-1234-1000", "+82 10-1234-1001", "+82 10-1234-1002"];
     const phoneHashes: string[] = phones.map((m) => ContractUtils.getPhoneHash(m));
     let linkCollectionContract: PhoneLinkCollection;
 
