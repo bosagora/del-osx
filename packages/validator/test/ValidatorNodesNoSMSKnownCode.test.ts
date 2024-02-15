@@ -85,7 +85,7 @@ describe("Test of ValidatorNode - NoSMSKnownCode", function () {
 
         before("Create Validator Nodes", async () => {
             for (let idx = 0; idx < maxValidatorCount; idx++) {
-                validatorNodeURLs.push(`http://localhost:${configs[idx].node.port}`);
+                validatorNodeURLs.push(`http://${ip.address()}:${configs[idx].node.port}`);
                 validatorNodes.push(new TestValidatorNode(configs[idx], storages[idx]));
             }
         });
