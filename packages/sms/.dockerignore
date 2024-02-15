@@ -6,7 +6,7 @@ tests
 .gitignore
 .prettierignore
 .prettierrc
-docker-build.sh
+docker-buildx.sh
 docker-compose.yml
 Dockerfile
 LICENSE

@@ -12,7 +12,7 @@ test
 .prettierrc
 .solhint.json
 .solhintignore
-docker-build.sh
+docker-buildx.sh
 docker-compose.yml
 Dockerfile
 LICENSE

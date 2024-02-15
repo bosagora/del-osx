@@ -68,7 +68,7 @@ describe("Test of ValidatorNode", function () {
         });
 
         before("Create Validator Client", async () => {
-            validatorNodeURL = `http://localhost:${config.node.port}`;
+            validatorNodeURL = `http://${ip.address()}:${config.node.port}`;
             validatorNode = new TestValidatorNode(config, storage);
         });
 
