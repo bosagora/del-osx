@@ -11,6 +11,8 @@ import chai, { expect } from "chai";
 import { solidity } from "ethereum-waffle";
 
 import { BigNumber } from "ethers";
+
+// tslint:disable-next-line:no-implicit-dependencies
 import { AddressZero, HashZero } from "@ethersproject/constants";
 
 chai.use(solidity);
@@ -37,7 +39,8 @@ describe("Test for EmailLinkCollection", () => {
         assert.deepStrictEqual(nonce.toString(), "0");
         const email = "abc@example.com";
         const hash = ContractUtils.getEmailHash(email);
-        const signature = await ContractUtils.signRequestHash(user1, hash, nonce);
+        const message = ContractUtils.getRequestMessage(hash, user1.address, ethers.provider.network.chainId, nonce);
+        const signature = await ContractUtils.signMessage(user1, message);
         requestId = ContractUtils.getRequestId(hash, user1.address, nonce);
         expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
         await expect(contract.connect(relay).addRequest(requestId, hash, user1.address, signature))
@@ -65,7 +68,8 @@ describe("Test for EmailLinkCollection", () => {
         const email = "abc@example.com";
         const hash = ContractUtils.getEmailHash(email);
         const nonce = await contract.nonceOf(user2.address);
-        const signature = await ContractUtils.signRequestHash(user2, hash, nonce);
+        const message = ContractUtils.getRequestMessage(hash, user2.address, ethers.provider.network.chainId, nonce);
+        const signature = await ContractUtils.signMessage(user2, message);
 
         requestId = ContractUtils.getRequestId(hash, user2.address, nonce);
         expect(await contract.connect(relay).isAvailable(requestId)).to.equal(true);
@@ -93,7 +97,7 @@ describe("Test for EmailLinkCollection", () => {
         const email = "abc@example.com";
         const hash = ContractUtils.getEmailHash(email);
         const nonce = await contract.nonceOf(user2.address);
-        const message = ContractUtils.getRemoveMessage(user2.address, nonce);
+        const message = ContractUtils.getRemoveMessage(user2.address, ethers.provider.network.chainId, nonce);
         const signature = await ContractUtils.signMessage(user2, message);
 
         await expect(contract.connect(validator1).remove(user2.address, signature))
@@ -109,7 +113,8 @@ describe("Test for EmailLinkCollection", () => {
         const hash = ContractUtils.getEmailHash(email);
         expect(hash).to.equal("0xd669bffe0491667304d87185db312d6477ed1f0fa95a26ff5405a90e6dddc0d6");
         const nonce = await contract.nonceOf(user3.address);
-        const signature = await ContractUtils.signRequestHash(user3, hash, nonce);
+        const message = ContractUtils.getRequestMessage(hash, user3.address, ethers.provider.network.chainId, nonce);
+        const signature = await ContractUtils.signMessage(user3, message);
         requestId = ContractUtils.getRequestId(hash, user3.address, nonce);
         await expect(contract.connect(relay).addRequest(requestId, hash, user3.address, signature)).to.be.revertedWith(
             "Invalid email hash"

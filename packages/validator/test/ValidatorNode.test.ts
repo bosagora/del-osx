@@ -92,7 +92,13 @@ describe("Test of ValidatorNode", function () {
         let requestId = "";
         it("Add link data", async () => {
             const nonce = await linkCollectionContract.nonceOf(users[0].address);
-            const signature = await ContractUtils.signRequestPhone(users[0], phones[0], nonce);
+            const message = ContractUtils.getRequestPhoneMessage(
+                phones[0],
+                users[0].address,
+                ethers.provider.network.chainId,
+                nonce
+            );
+            const signature = await ContractUtils.signMessage(users[0], message);
 
             const url = URI(validatorNodeURL).filename("request").toString();
             const response = await client.post(url, {

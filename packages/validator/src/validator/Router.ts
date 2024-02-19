@@ -325,7 +325,13 @@ export class Router {
             const signature: string = String(req.body.signature).trim(); // 서명
             const nonce = await (await this.getContract()).nonceOf(address);
             const phoneHash = ContractUtils.getPhoneHash(phone);
-            if (!ContractUtils.verifyRequestPhone(address, phone, nonce, signature)) {
+            const reqMsg = ContractUtils.getRequestMessage(
+                phoneHash,
+                address,
+                hre.ethers.provider.network.chainId,
+                nonce
+            );
+            if (!ContractUtils.verifyMessage(address, reqMsg, signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
                         message: "The signature value entered is not valid.",
@@ -345,7 +351,8 @@ export class Router {
                 receiver: this._wallet.address,
                 signature: "",
             };
-            tx.signature = await ContractUtils.signTx(this.getSigner(), tx);
+            const txMsg = ContractUtils.getTxMessage(tx, hre.ethers.provider.network.chainId);
+            tx.signature = await ContractUtils.signMessage(this.getSigner(), txMsg);
 
             try {
                 const data: IValidationData = toValidationData(tx);
@@ -431,7 +438,8 @@ export class Router {
                 signature: String(req.body.signature).trim(),
             };
 
-            if (!ContractUtils.verifyTx(tx.receiver, tx, tx.signature)) {
+            const txMsg = ContractUtils.getTxMessage(tx, hre.ethers.provider.network.chainId);
+            if (!ContractUtils.verifyMessage(tx.receiver, txMsg, tx.signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
                         message: "The signature value entered is not valid.",
@@ -506,7 +514,8 @@ export class Router {
                 receiver: this._wallet.address,
                 signature: "",
             };
-            submitData.signature = await ContractUtils.signSubmit(this.getSigner(), submitData);
+            const submitMsg = ContractUtils.getSubmitMessage(submitData, hre.ethers.provider.network.chainId);
+            submitData.signature = await ContractUtils.signMessage(this.getSigner(), submitMsg);
             await this._peers.broadcastSubmit(submitData);
 
             return this.processSubmit(requestId, code, res);
@@ -552,7 +561,8 @@ export class Router {
                 signature: String(req.body.signature).trim(),
             };
 
-            if (!ContractUtils.verifySubmit(submitData.receiver, submitData, submitData.signature)) {
+            const submitMsg = ContractUtils.getSubmitMessage(submitData, hre.ethers.provider.network.chainId);
+            if (!ContractUtils.verifyMessage(submitData.receiver, submitMsg, submitData.signature)) {
                 return res.json(
                     this.makeResponseData(401, undefined, {
                         message: "The signature value entered is not valid.",
