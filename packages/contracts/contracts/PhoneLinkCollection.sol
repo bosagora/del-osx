@@ -67,7 +67,7 @@ contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable,
     function addRequest(bytes32 _id, bytes32 _phone, address _wallet, bytes calldata _signature) external {
         require(requests[_id].status == RequestStatus.INVALID, "Invalid ID");
         require(_phone != NULL, "Invalid phone hash");
-        bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, nonce[_wallet]));
+        bytes32 dataHash = keccak256(abi.encode(_phone, _wallet, block.chainid, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
         nonce[_wallet]++;
@@ -145,7 +145,7 @@ contract PhoneLinkCollection is PhoneStorage, Initializable, OwnableUpgradeable,
     /// @param _wallet 지갑주소
     /// @param _signature 지갑주소의 서명
     function remove(address _wallet, bytes calldata _signature) external {
-        bytes32 dataHash = keccak256(abi.encode(_wallet, nonce[_wallet]));
+        bytes32 dataHash = keccak256(abi.encode(_wallet, block.chainid, nonce[_wallet]));
         require(ECDSA.recover(ECDSA.toEthSignedMessageHash(dataHash), _signature) == _wallet, "Invalid signature");
 
         nonce[_wallet]++;
