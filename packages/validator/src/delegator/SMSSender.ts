@@ -49,13 +49,12 @@ export class SMSSender implements ISMSSender {
         }
 
         try {
-            const client = axios.create();
+            const client = axios.create({ headers: { Authorization: this._config.sms.accessKey } });
             const contents: string[] = [];
             const validatorNumber: string = `${validatorIndex + 1}`;
             contents.push(`#${validatorNumber}`);
             contents.push(`인증코드: ${code}`);
             const response = await client.post(this._config.sms.endpoint, {
-                accessKey: this._config.sms.accessKey,
                 sender: this._config.sms.sender,
                 receiver: phone,
                 msg: contents.join("\n"),
