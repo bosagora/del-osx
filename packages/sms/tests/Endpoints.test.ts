@@ -13,7 +13,7 @@ import { URL } from "url";
 const URI = require("urijs");
 
 describe("Test of Server", () => {
-    const client = new TestClient();
+    let client: TestClient;
     let server: TestServer;
     let serverURL: URL;
     let config: Config;
@@ -21,6 +21,11 @@ describe("Test of Server", () => {
     before("Create Config", async () => {
         config = new Config();
         config.readFromFile(path.resolve(process.cwd(), "tests", "config.test.yaml"));
+        client = new TestClient({
+            headers: {
+                Authorization: config.sms.accessKey,
+            },
+        });
     });
 
     before("Create TestServer", async () => {
@@ -44,7 +49,6 @@ describe("Test of Server", () => {
         const uri = URI(serverURL).filename("send");
         const url = uri.toString();
         const response = await client.post(url, {
-            accessKey: config.sms.accessKey,
             msg: contents.join("\n"),
             sender: process.env.SMS_SENDER,
             receiver: process.env.SMS_RECEIVER,

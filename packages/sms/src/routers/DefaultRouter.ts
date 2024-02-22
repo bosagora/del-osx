@@ -40,7 +40,7 @@ export class DefaultRouter {
         this.app.get("/", [], this.getHealthStatus.bind(this));
         this.app.post(
             "/send",
-            [body("accessKey").exists(), body("msg").exists(), body("sender").exists(), body("receiver").exists()],
+            [body("msg").exists(), body("sender").exists(), body("receiver").exists()],
             this.send.bind(this)
         );
     }
@@ -50,7 +50,7 @@ export class DefaultRouter {
     }
 
     private async send(req: express.Request, res: express.Response) {
-        logger.http(`POST /send`);
+        logger.http(`POST /send ${req.ip}:${JSON.stringify(req.body)}`);
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -62,8 +62,8 @@ export class DefaultRouter {
             );
         }
         try {
-            const secret: string = String(req.body.accessKey);
-            if (secret !== this._config.sms.accessKey) {
+            const accessKey = req.get("Authorization");
+            if (accessKey !== this._config.sms.accessKey) {
                 return res.json(
                     this.makeResponseData(400, undefined, {
                         message: "The access key entered is not valid.",
