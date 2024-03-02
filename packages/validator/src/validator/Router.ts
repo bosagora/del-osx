@@ -70,7 +70,7 @@ export class Router {
         this._peers = peers;
         this._phoneSender = phoneSender;
         this._codeGenerator = codeGenerator;
-        this._wallet = new Wallet(this._config.validator.validatorKey);
+        this._wallet = new Wallet(this._config.validator.validatorKey, hre.ethers.provider);
         this._validatorIndex = -1;
 
         const host = this._config.node.external !== "" ? this._config.node.external : ip.address();
@@ -97,7 +97,7 @@ export class Router {
     }
 
     private getSigner(): Signer {
-        return new NonceManager(new GasPriceManager(hre.ethers.provider.getSigner(this._wallet.address)));
+        return new NonceManager(new GasPriceManager(this._wallet));
     }
 
     private makeResponseData(code: number, data: any, error?: any): any {
