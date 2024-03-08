@@ -1,6 +1,6 @@
 {
     "name": "del-osx-artifacts",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "description": "Contracts that links phone number and wallet address",
     "files": [
         "**/*.sol"
