@@ -7,5 +7,14 @@
   },
   "bosagora_devnet": {
     "PhoneLinkCollection": "0xaE7018CaF086EB2Ca62eAA7b91B61dDA6b046F70"
+  },
+  "kios_mainnet": {
+    "PhoneLinkCollection": "0xebE48e679c76C93eb3fdf58d23EECd1e3fe97750"
+  },
+  "kios_testnet": {
+    "PhoneLinkCollection": "0xebE48e679c76C93eb3fdf58d23EECd1e3fe97750"
+  },
+  "kios_devnet": {
+    "PhoneLinkCollection": "0xaE7018CaF086EB2Ca62eAA7b91B61dDA6b046F70"
   }
 }
