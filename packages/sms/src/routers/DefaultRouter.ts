@@ -1,4 +1,5 @@
 import { Config } from "../common/Config";
+import { Metrics } from "../metrics/Metrics";
 import { logger } from "../common/Logger";
 import { WebService } from "../service/WebService";
 
@@ -18,10 +19,12 @@ interface ISMSResponse {
 export class DefaultRouter {
     private _web_service: WebService;
     private readonly _config: Config;
+    private readonly _metrics: Metrics;
 
-    constructor(service: WebService, config: Config) {
+    constructor(service: WebService, config: Config, metrics: Metrics) {
         this._web_service = service;
         this._config = config;
+        this._metrics = metrics;
     }
 
     private get app(): express.Application {
@@ -43,6 +46,7 @@ export class DefaultRouter {
             [body("msg").exists(), body("sender").exists(), body("receiver").exists()],
             this.send.bind(this)
         );
+        this.app.get("/metrics", [], this.getMetrics.bind(this));
     }
 
     private async getHealthStatus(req: express.Request, res: express.Response) {
@@ -76,9 +80,11 @@ export class DefaultRouter {
             const receiver: string = Utils.checkPhoneNumber(String(req.body.receiver));
             const smsResponse = await this.sendSMS(msg, sender, receiver);
             logger.info(`POST /send : ${smsResponse.message}`);
+            this._metrics.add("success", 1);
             return res.status(200).json(this.makeResponseData(200, smsResponse, null));
         } catch (error: any) {
             logger.error(`POST /send : ${error.message}`);
+            this._metrics.add("failure", 1);
             return res.status(200).json(
                 this.makeResponseData(500, undefined, {
                     message: error.message,
@@ -113,5 +119,15 @@ export class DefaultRouter {
                     reject(e);
                 });
         });
+    }
+
+    /**
+     * GET /metrics
+     * @private
+     */
+    private async getMetrics(req: express.Request, res: express.Response) {
+        res.set("Content-Type", this._metrics.contentType());
+        this._metrics.add("status", 1);
+        res.end(await this._metrics.metrics());
     }
 }
