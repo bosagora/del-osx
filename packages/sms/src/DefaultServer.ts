@@ -4,16 +4,25 @@ import { Config } from "./common/Config";
 import { DefaultRouter } from "./routers/DefaultRouter";
 import { WebService } from "./service/WebService";
 
+import { register } from "prom-client";
+import { Metrics } from "./metrics/Metrics";
+
 export class DefaultServer extends WebService {
     private readonly config: Config;
+    private readonly metrics: Metrics;
 
     public readonly router: DefaultRouter;
 
     constructor(config: Config) {
         super(config.server.port, config.server.address);
+        register.clear();
+        this.metrics = new Metrics();
+        this.metrics.create("gauge", "status", "serve status");
+        this.metrics.create("summary", "success", "request success");
+        this.metrics.create("summary", "failure", "request failure");
 
         this.config = config;
-        this.router = new DefaultRouter(this, this.config);
+        this.router = new DefaultRouter(this, this.config, this.metrics);
     }
 
     public async start(): Promise<void> {

@@ -1,4 +1,5 @@
 import { PhoneLinkCollection } from "../../typechain-types";
+import { Metrics } from "../metrics/Metrics";
 import { Config } from "../common/Config";
 import { logger } from "../common/Logger";
 import { GasPriceManager } from "../contract/GasPriceManager";
@@ -34,6 +35,7 @@ import { PhoneNumberFormat, PhoneNumberUtil } from "google-libphonenumber";
 export class Router {
     private readonly _validator: ValidatorNode;
     private readonly _config: Config;
+    private readonly _metrics: Metrics;
     private readonly _storage: Storage;
     private readonly _wallet: Wallet;
     private _peers: Peers;
@@ -58,6 +60,7 @@ export class Router {
     constructor(
         validator: ValidatorNode,
         config: Config,
+        metrics: Metrics,
         storage: Storage,
         peers: Peers,
         phoneSender: ISMSSender,
@@ -66,6 +69,7 @@ export class Router {
         this._phoneUtil = PhoneNumberUtil.getInstance();
         this._validator = validator;
         this._config = config;
+        this._metrics = metrics;
         this._storage = storage;
         this._peers = peers;
         this._phoneSender = phoneSender;
@@ -256,6 +260,7 @@ export class Router {
             ],
             this.postBroadcastSubmit.bind(this)
         );
+        this._validator.app.get("/metrics", [], this.getMetrics.bind(this));
     }
 
     private async getHealthStatus(req: express.Request, res: express.Response) {
@@ -359,12 +364,14 @@ export class Router {
                 data.processStep = ProcessStep.RECEIVED_REGISTER;
                 await this._storage.createValidation(data);
 
+                this._metrics.add("success", 1);
                 return res.json(
                     this.makeResponseData(200, {
                         requestId,
                     })
                 );
             } catch (error: any) {
+                this._metrics.add("failure", 1);
                 const message = error.message !== undefined ? error.message : "Failed save request";
                 return res.json(
                     this.makeResponseData(800, undefined, {
@@ -373,6 +380,7 @@ export class Router {
                 );
             }
         } catch (error: any) {
+            this._metrics.add("failure", 1);
             const message = error.message !== undefined ? error.message : "Failed save request";
             logger.error({
                 validatorIndex: this._validatorIndex,
@@ -460,12 +468,14 @@ export class Router {
                 data.processStep = ProcessStep.RECEIVED_BROADCAST;
                 await this._storage.createValidation(data);
 
+                this._metrics.add("success", 1);
                 return res.json(
                     this.makeResponseData(200, {
                         requestId: data.requestId,
                     })
                 );
             } catch (error: any) {
+                this._metrics.add("failure", 1);
                 const message = error.message !== undefined ? error.message : "Failed save request";
                 return res.json(
                     this.makeResponseData(800, undefined, {
@@ -474,6 +484,7 @@ export class Router {
                 );
             }
         } catch (error: any) {
+            this._metrics.add("failure", 1);
             const message = error.message !== undefined ? error.message : "Failed broadcast request";
             logger.error({
                 validatorIndex: this._validatorIndex,
@@ -518,6 +529,7 @@ export class Router {
             submitData.signature = await ContractUtils.signMessage(this.getSigner(), submitMsg);
             await this._peers.broadcastSubmit(submitData);
 
+            this._metrics.add("success", 1);
             return this.processSubmit(requestId, code, res);
         } catch (error: any) {
             const message = error.message !== undefined ? error.message : "Failed submit";
@@ -526,6 +538,7 @@ export class Router {
                 method: "Router.postSubmit()",
                 message,
             });
+            this._metrics.add("failure", 1);
             return res.json(
                 this.makeResponseData(500, undefined, {
                     message,
@@ -586,6 +599,7 @@ export class Router {
                 method: "Router.postBroadcastSubmit()",
                 message,
             });
+            this._metrics.add("failure", 1);
             return res.json(
                 this.makeResponseData(500, undefined, {
                     message,
@@ -623,6 +637,7 @@ export class Router {
                     await this._storage.updateReceiveCode(requestId, validation.receiveCode);
                     if (validation.sendCode === validation.receiveCode) {
                         await this._storage.updateProcessStep(requestId, ProcessStep.RECEIVED_CODE);
+                        this._metrics.add("success", 1);
                         return res.json(this.makeResponseData(200, "OK"));
                     } else {
                         logger.warn({
@@ -676,6 +691,7 @@ export class Router {
                 method: "Router.processSubmit()",
                 message: `No such request found. ${requestId}`,
             });
+            this._metrics.add("failure", 1);
             return res.json(this.makeResponseData(410, null, { message: "No such request found." }));
         }
     }
@@ -851,5 +867,14 @@ export class Router {
             await this._storage.removeExpiredValidation();
         }
         this._oldTimeStamp = currentTime;
+    }
+
+    /**
+     * GET /metrics
+     * @private
+     */
+    private async getMetrics(req: express.Request, res: express.Response) {
+        res.set("Content-Type", this._metrics.contentType());
+        res.end(await this._metrics.metrics());
     }
 }

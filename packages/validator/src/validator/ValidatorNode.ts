@@ -7,6 +7,9 @@ import { Peers } from "./Peers";
 import { Router } from "./Router";
 import { Worker } from "./Worker";
 
+import { register } from "prom-client";
+import { Metrics } from "../metrics/Metrics";
+
 import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
@@ -20,6 +23,7 @@ export class ValidatorNode {
     private _server: http.Server | null = null;
 
     private readonly _config: Config;
+    private readonly _metrics: Metrics;
     private readonly _router: Router;
     private readonly _storage: Storage;
     private readonly _peers: Peers;
@@ -33,6 +37,12 @@ export class ValidatorNode {
         this._config = config;
         this._storage = storage;
         this._peers = new Peers();
+
+        register.clear();
+        this._metrics = new Metrics();
+        this._metrics.create("gauge", "status", "serve status");
+        this._metrics.create("summary", "success", "request success");
+        this._metrics.create("summary", "failure", "request failure");
 
         if (
             this._config.validator.authenticationMode === AuthenticationMode.NoSMSNoCode ||
@@ -62,6 +72,7 @@ export class ValidatorNode {
         this._router = new Router(
             this,
             this._config,
+            this._metrics,
             this._storage,
             this._peers,
             this._phoneSender,
